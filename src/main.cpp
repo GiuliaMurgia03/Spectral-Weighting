@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
 
     SpectralWeighting sp;
 
-    if(!sp.open(argv[1])){
+    if(!sp.test(argv[1])){
         return EXIT_FAILURE;
     }
 

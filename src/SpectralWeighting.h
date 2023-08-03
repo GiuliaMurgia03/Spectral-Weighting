@@ -12,7 +12,7 @@ namespace spacew
     public:
         SpectralWeighting();
         ~SpectralWeighting();
-        bool open(const string &);
+        bool test(const string &);
     };
 
 }
