@@ -15,6 +15,7 @@ namespace spacew
         bool test(const string&);
         bool open(const string&, fitsfile**);
         bool splat(fitsfile*, const string&);
+        bool gaussian_smoothing(fitsfile*, const string&, float sigma);
     };
 
 }

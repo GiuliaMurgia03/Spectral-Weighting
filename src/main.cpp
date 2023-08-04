@@ -22,7 +22,13 @@ int main(int argc, char *argv[])
     }
 
     // Splat
-    if (!sp.splat(fptr, "splat.fits"))
+    // if (!sp.splat(fptr, "splat.fits"))
+    //  {
+    //      return EXIT_FAILURE;
+    //  }
+
+    // Smoothing
+    if (!sp.gaussian_smoothing(fptr, "smooth.fits", 3))
     {
         return EXIT_FAILURE;
     }
