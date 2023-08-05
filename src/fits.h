@@ -29,6 +29,9 @@ namespace spacew
         int get_naxis() const;     // Returns the number of axis
         long get_naxes(const int& i) const; // Returns the size of each axis
         bool set_naxes(const int& i,const long& value);
+        bool read_channel_image(const int& channel, vector <float> &image); 
+        bool write_channel_image(const int& channel, vector <float> &image);
+
     };
 
 }

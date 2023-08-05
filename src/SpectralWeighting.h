@@ -13,7 +13,7 @@ namespace spacew
         SpectralWeighting();
         ~SpectralWeighting();
         bool splat(const string& infile, const string& outfile);
-        bool gaussian_smoothing(fitsfile*, const string&, float sigma);
+        bool gaussian_smoothing(const string &infile, const string &outfile, float sigma);
     };
 
 }

@@ -19,9 +19,9 @@ namespace spacew
         cout << "Clean up" << endl;
     }
 
-
     bool SpectralWeighting::splat(const string &infile, const string &outfile)
     {
+        // Open input file and create output file
         int status = 0;
         spacew::fits infits;
 
@@ -36,8 +36,11 @@ namespace spacew
             return false;
         }
 
+        cout << "Cloning header" << endl;
         outfits.clone_header(infits);
+        cout << "Setting naxes" << endl;
         outfits.set_naxes(2, 1);
+        cout << "Inizializing all pixels in all channels to 0" << endl;
         outfits.fill(0);
 
         // Splat main loop
@@ -90,6 +93,7 @@ namespace spacew
             }
         }
 
+        // Close files
         if (!infits.close()) // Check that worked
         {
             return false;
@@ -103,7 +107,7 @@ namespace spacew
         return true;
     }
 
-    bool SpectralWeighting::gaussian_smoothing(fitsfile *fptr, const string &outfile, float sigma)
+    bool SpectralWeighting::gaussian_smoothing(const string &infile, const string &outfile, float sigma)
     {
 
         // Compute the smoothing Kernel
@@ -125,115 +129,73 @@ namespace spacew
             }
         }
 
-        // Get Header information
+        // Open input file and create output file
         int status = 0;
-        int hdunum;
-        fits_get_num_hdus(fptr, &hdunum, &status);
-        cout << "Number of HDU in fits file: " << hdunum << endl;
+        spacew::fits infits;
 
-        int bitpix;
-        fits_get_img_type(fptr, &bitpix, &status);
-        cout << "BitPix is: " << bitpix << endl;
-
-        int naxis;
-        fits_get_img_dim(fptr, &naxis, &status);
-        cout << "The number of axis is: " << naxis << endl;
-
-        long naxes[naxis]; // Array
-        fits_get_img_size(fptr, naxis, naxes, &status);
-        for (int i = 0; i < naxis; i++)
-            cout << "Axis " << i << " size is: " << naxes[i] << endl;
-
-        // Create a fits file
-        fitsfile *ofptr;
-        status = 0;
-        fits_create_file(&ofptr, outfile.c_str(), &status);
-
-        if (status) // Check that worked
+        if (!infits.open(infile))
         {
-            fits_report_error(stderr, status);
             return false;
         }
 
-        // Copy the header keywords from input file to output file
-        fits_copy_header(fptr, ofptr, &status);
+        cout << "Creating file " << outfile << endl;
 
-        // Smoothing main loop
-        long pix[4];
-        pix[0] = 1;
-        pix[1] = 1;
-        pix[2] = 1;
-        pix[3] = 1;
-
-        long smooth_pix[4];
-        smooth_pix[0] = 1;
-        smooth_pix[1] = 1;
-        smooth_pix[2] = 1;
-        smooth_pix[3] = 1;
-        float smooth[1];
-        float channelvalue[1];
-
-        // Inizialize all pixels in all channels to 0
-        for (int k = 0; k < naxes[2]; k++)
+        spacew::fits outfits;
+        if (!outfits.create(outfile))
         {
-            for (int j = 0; j < naxes[1]; j++)
-            {
-                for (int i = 0; i < naxes[0]; i++)
-                {
-
-                    pix[0] = i + 1;
-                    pix[1] = j + 1;
-                    pix[2] = k + 1;
-                    channelvalue[0] = 0;
-
-                    fits_write_pix(ofptr, TFLOAT, pix, 1, channelvalue, &status);
-                }
-            }
+            return false;
         }
 
-        for (int k = 0; k < naxes[2]; k++)
+        cout << "Cloning header" << endl;
+        outfits.clone_header(infits);
+        cout << "Inizializing all pixels in all channels to 0" << endl;
+        outfits.fill(0);
+
+        // Smoothing main loop
+        int nx = infits.get_naxes(0);
+        int ny = infits.get_naxes(1);
+        int nz = infits.get_naxes(2);
+
+        vector<float> image(nx * ny);
+        vector<float> smooth_image(nx * ny);
+
+        for (int k = 0; k < nz; k++)
         {
-            cout << "Working on channel: " << k + 1 << " of " << naxes[2] << endl;
-            for (int j = 0; j < naxes[1]; j++)
+            cout << "Working on channel: " << k + 1 << " of " << nz << endl;
+            infits.read_channel_image(k, image);
+
+            for (int j = 0; j < ny; j++)
             {
-                for (int i = 0; i < naxes[0]; i++)
+                for (int i = 0; i < nx; i++)
                 {
-                    pix[0] = i + 1;
-                    pix[1] = j + 1;
-                    pix[2] = k + 1;
-
-                    smooth_pix[2] = k + 1;
-
-                    fits_read_pix(ofptr, TFLOAT, pix, 1, NULL, channelvalue, NULL, &status);
-
-                    smooth[0] = channelvalue[0];
-
                     for (int ii = 0; ii < m; ii++)
                     {
                         for (int jj = 0; jj < n; jj++)
                         {
-                            smooth_pix[0] = i + ii - int(m / 2.0 + 0.5) + 1;
-                            smooth_pix[1] = j + jj - int(n / 2.0 + 0.5) + 1;
-                            // If inside image
-                            if (smooth_pix[0] > 0 && smooth_pix[0] <= naxes[0] && smooth_pix[1] > 0 && smooth_pix[1] <= naxes[1])
-                            {
+                            int xpix = i + ii - int(m / 2.0+0.5);
+                            int ypix = j + jj - int(n / 2.0+0.5);
 
-                                fits_read_pix(fptr, TFLOAT, smooth_pix, 1, NULL, channelvalue, NULL, &status);
-                                smooth[0] = smooth[0] + channelvalue[0] * kernel[ii][jj];
+                            // If inside image
+                            if (xpix >= 0 && xpix < nx && ypix >= 0 && ypix < ny)
+                            {
+                                smooth_image[i + nx * j] = smooth_image[i + nx * j] + image[xpix + nx * ypix] * kernel[ii][jj];
                             }
                         }
                     }
-
-                    fits_write_pix(ofptr, TFLOAT, pix, 1, smooth, &status);
                 }
             }
+
+            outfits.write_channel_image(k, smooth_image);
         }
 
-        // Close output
-        fits_close_file(ofptr, &status);
-        if (status) // Check that worked
+        // Close files
+        if (!infits.close()) // Check that worked
         {
-            fits_report_error(stderr, status);
+            return false;
+        }
+
+        if (!outfits.close()) // Check that worked
+        {
             return false;
         }
 

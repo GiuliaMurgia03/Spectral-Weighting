@@ -84,7 +84,7 @@ namespace spacew
         fits_get_img_dim(fptr, &naxis, &status);
         cout << "The number of axis is: " << naxis << endl;
 
-        naxes = new long(naxis); // Array of length naxis
+        naxes = new long[naxis]; // Array of length naxis
         fits_get_img_size(fptr, naxis, naxes, &status);
         for (int i = 0; i < naxis; i++)
             cout << "Axis " << i << " size is: " << naxes[i] << endl;
@@ -139,6 +139,7 @@ namespace spacew
         {
             delete[] naxes;
         }
+
         naxes = new long[naxis];
         for (int i = 0; i < naxis; i++)
         {
@@ -190,6 +191,58 @@ namespace spacew
             return false;
         }
         return true;
+    }
+
+
+    bool fits::read_channel_image(const int& channel, vector <float> &image){
+
+        long pix[naxis];
+        status=0;
+
+        for(int i=0; i<naxis; i++) {
+            pix[i]=1;
+        }
+
+        pix[0] = 1;
+        pix[1] = 1;
+        pix[2] = channel + 1;
+        long nvalues=naxes[0]*naxes[1];
+
+        fits_read_pix(fptr, TFLOAT, pix, nvalues, NULL, &image[0], NULL, &status);
+
+        if (status) // Check that worked
+        {
+            fits_report_error(stderr, status);
+            return false;
+        }
+
+        return true; 
+    }
+
+    bool fits::write_channel_image(const int& channel, vector <float> &image){
+
+        long pix[naxis];
+        status=0;
+
+        for(int i=0; i<naxis; i++) {
+            pix[i]=1;
+        }
+
+        pix[0] = 1;
+        pix[1] = 1;
+        pix[2] = channel + 1;
+        long nvalues=naxes[0]*naxes[1];
+
+        fits_write_pix(fptr, TFLOAT, pix, nvalues, &image[0], &status);
+
+        if (status) // Check that worked
+        {
+            fits_report_error(stderr, status);
+            return false;
+        }
+
+        return true; 
+
     }
 
 }
