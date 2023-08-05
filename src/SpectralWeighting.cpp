@@ -172,8 +172,8 @@ namespace spacew
                     {
                         for (int jj = 0; jj < n; jj++)
                         {
-                            int xpix = i + ii - int(m / 2.0+0.5);
-                            int ypix = j + jj - int(n / 2.0+0.5);
+                            int xpix = i + ii - int(m / 2.0 + 0.5);
+                            int ypix = j + jj - int(n / 2.0 + 0.5);
 
                             // If inside image
                             if (xpix >= 0 && xpix < nx && ypix >= 0 && ypix < ny)
@@ -186,6 +186,174 @@ namespace spacew
             }
 
             outfits.write_channel_image(k, smooth_image);
+        }
+
+        // Close files
+        if (!infits.close()) // Check that worked
+        {
+            return false;
+        }
+
+        if (!outfits.close()) // Check that worked
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool SpectralWeighting::local_noise(const string &infile, const string &outfile, int size)
+    {
+
+        // Open input file and create output file
+        int status = 0;
+        spacew::fits infits;
+
+        if (!infits.open(infile))
+        {
+            return false;
+        }
+
+        cout << "Creating file " << outfile << endl;
+
+        spacew::fits outfits;
+        if (!outfits.create(outfile))
+        {
+            return false;
+        }
+
+        cout << "Cloning header" << endl;
+        outfits.clone_header(infits);
+        cout << "Inizializing all pixels in all channels to 0" << endl;
+        outfits.fill(0);
+
+        // Smoothing main loop
+        int nx = infits.get_naxes(0);
+        int ny = infits.get_naxes(1);
+        int nz = infits.get_naxes(2);
+
+        vector<float> image(nx * ny);
+        vector<float> sigma_image(nx * ny);
+
+        int m = 1 + 2 * size; // It's always odd
+
+        for (int k = 0; k < nz; k++)
+        {
+            cout << "Working on channel: " << k + 1 << " of " << nz << endl;
+            infits.read_channel_image(k, image);
+            get_plane_sigma_image(image, nx, ny, sigma_image, m);
+            outfits.write_channel_image(k, sigma_image);
+        }
+
+        // Close files
+        if (!infits.close()) // Check that worked
+        {
+            return false;
+        }
+
+        if (!outfits.close()) // Check that worked
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool SpectralWeighting::get_plane_sigma_image(vector<float> &image, int nx, int ny, vector<float> &sigma_image, int m)
+    {
+
+        for (int j = 0; j < ny; j++)
+        {
+            for (int i = 0; i < nx; i++)
+            {
+
+                vector<float> values;
+
+                // Extract nearby pixel values
+                for (int ii = 0; ii < m; ii++)
+                {
+                    for (int jj = 0; jj < m; jj++)
+                    {
+                        int xpix = i + ii - int(m / 2.0 + 0.5);
+                        int ypix = j + jj - int(m / 2.0 + 0.5);
+
+                        // If inside image
+                        if (xpix >= 0 && xpix < nx && ypix >= 0 && ypix < ny)
+                        {
+                            values.push_back(image[xpix + nx * ypix]);
+                        }
+                    }
+                }
+
+                // Calculate statistic of nearby pixel values
+                float sum = 0;
+                for (auto v : values)
+                {
+                    sum += v;
+                }
+                float avg = NULL;
+                sigma_image[i + nx * j] = NULL;
+                if (values.size() > 0)
+                {
+                    avg = sum / values.size(); // Average
+                    sum = 0;
+                    for (auto v : values)
+                    {
+                        sum += pow((avg - v), 2);
+                    }
+                    sigma_image[i + nx * j] = sqrt(sum / values.size()); // Standard Deviation
+                }
+            }
+        }
+
+        return true;
+    }
+
+    bool SpectralWeighting::local_weights(const string &infile, const string &outfile, int size)
+    {
+
+        // Open input file and create output file
+        int status = 0;
+        spacew::fits infits;
+
+        if (!infits.open(infile))
+        {
+            return false;
+        }
+
+        cout << "Creating file " << outfile << endl;
+
+        spacew::fits outfits;
+        if (!outfits.create(outfile))
+        {
+            return false;
+        }
+
+        cout << "Cloning header" << endl;
+        outfits.clone_header(infits);
+        cout << "Inizializing all pixels in all channels to 0" << endl;
+        outfits.fill(0);
+
+        // Smoothing main loop
+        int nx = infits.get_naxes(0);
+        int ny = infits.get_naxes(1);
+        int nz = infits.get_naxes(2);
+
+        vector<float> image(nx * ny);
+        vector<float> sigma_image(nx * ny);
+
+        int m = 1 + 2 * size; // It's always odd
+
+        for (int k = 0; k < nz; k++)
+        {
+            cout << "Working on channel: " << k + 1 << " of " << nz << endl;
+            infits.read_channel_image(k, image);
+            get_plane_sigma_image(image, nx, ny, sigma_image, m);
+            for (int i = 0; i < sigma_image.size(); i++)
+            {
+                sigma_image[i] = 1 / pow(sigma_image[i], 2); 
+            }
+            outfits.write_channel_image(k, sigma_image);
         }
 
         // Close files

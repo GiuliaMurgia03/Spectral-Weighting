@@ -11,11 +11,14 @@ int main(int argc, char *argv[])
     cout << "Option :" << option << endl;
 
     // Help
-    if ((argc == 2 && option == "-help" )|| argc != 4)
+    if ((argc == 2 && option == "-help"))
     {
         cout << "Type one of the following:" << endl;
         cout << "SpectralWeighting -splat input.fits output.fits" << endl;
         cout << "SpectralWeighting -smooth input.fits output.fits" << endl;
+        cout << "SpectralWeighting -local_noise input.fits output.fits size" << endl;
+        cout << "SpectralWeighting -local_weights input.fits output.fits size" << endl;
+
         return EXIT_SUCCESS;
     }
 
@@ -29,6 +32,18 @@ int main(int argc, char *argv[])
 
     // Smooth
     if (argc == 4 && option == "-smooth" && !sp.gaussian_smoothing(argv[2], argv[3], 3))
+    {
+        return EXIT_FAILURE;
+    }
+
+    // Local Noise
+    if (argc == 5 && option == "-local_noise" && !sp.local_noise(argv[2], argv[3], std::stoi(argv[4])))
+    {
+        return EXIT_FAILURE;
+    }
+
+    // Local Weight
+    if (argc == 5 && option == "-local_weights" && !sp.local_weights(argv[2], argv[3], std::stoi(argv[4])))
     {
         return EXIT_FAILURE;
     }
