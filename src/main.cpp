@@ -13,25 +13,18 @@ int main(int argc, char *argv[])
     }
 
     SpectralWeighting sp;
-    fitsfile *fptr;
-
-    // Open fits file
-    if (!sp.open(argv[1], &fptr))
-    {
-        return EXIT_FAILURE;
-    }
 
     // Splat
-    // if (!sp.splat(fptr, "splat.fits"))
-    //  {
-    //      return EXIT_FAILURE;
-    //  }
-
-    // Smoothing
-    if (!sp.gaussian_smoothing(fptr, "smooth.fits", 3))
+    if (!sp.splat(argv[1], "splat.fits"))
     {
         return EXIT_FAILURE;
     }
+
+    // Smoothing
+    // if (!sp.gaussian_smoothing(fptr, "smooth.fits", 3))
+    //{
+    //    return EXIT_FAILURE;
+    //}
 
     return EXIT_SUCCESS;
 }
