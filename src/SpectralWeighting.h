@@ -1,6 +1,7 @@
 #pragma once
 #include "fitsio.h"
 #include <string>
+#include <cmath>
 
 using namespace std;
 
@@ -9,6 +10,8 @@ namespace spacew
 
     class SpectralWeighting
     {
+
+        float float_nan;
     public:
         SpectralWeighting();
         ~SpectralWeighting();

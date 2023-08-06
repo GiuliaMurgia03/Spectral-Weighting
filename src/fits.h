@@ -7,6 +7,7 @@ using namespace std;
 namespace spacew
 {
 
+
     class fits
     {
 
@@ -15,6 +16,7 @@ namespace spacew
         int naxis;
         long *naxes;
         int status;
+        float float_nan;
 
     public:
         fits();

@@ -8,11 +8,11 @@ namespace spacew
 
     fits::fits()
     {
-
         naxis = 0;
         naxes = nullptr;
         fptr = nullptr;
         status = 0;
+        float_nan=std::nanf("nan");
     }
 
     fits::~fits()
@@ -214,8 +214,11 @@ namespace spacew
         pix[1] = 1;
         pix[2] = channel + 1;
         long nvalues = naxes[0] * naxes[1];
+        
+        // Set to one if undefined values are found in the fit file and in this case these are replaced with float_nan
+        int anynull=0; 
 
-        fits_read_pix(fptr, TFLOAT, pix, nvalues, NULL, &image[0], NULL, &status);
+        fits_read_pix(fptr, TFLOAT, pix, nvalues, &float_nan, &image[0], &anynull, &status);
 
         if (status) // Check that worked
         {

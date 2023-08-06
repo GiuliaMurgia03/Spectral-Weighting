@@ -11,6 +11,7 @@ namespace spacew
 
     SpectralWeighting::SpectralWeighting()
     {
+        float_nan = std::nanf("nan");
         cout << "Inizialization" << endl;
     }
 
@@ -63,6 +64,9 @@ namespace spacew
             bchan = bchan - 1;
         }
         cout << "Splat cube from channel " << bchan + 1 << " to channel " << echan + 1 << endl;
+        cout << "Using null val " << float_nan << endl;
+
+        int anynull = 0;
 
         for (int j = 0; j < infits.get_naxes(1); j++)
         {
@@ -79,7 +83,7 @@ namespace spacew
                 for (int k = bchan; k < echan; k++)
                 { // Loop over channels
                     pix[2] = k + 1;
-                    fits_read_pix(infits.get_fptr(), TFLOAT, pix, 1, NULL, channelvalue, NULL, &status);
+                    fits_read_pix(infits.get_fptr(), TFLOAT, pix, 1, &float_nan, channelvalue, &anynull, &status);
 
                     float w = 1;
 
@@ -96,7 +100,7 @@ namespace spacew
                 }
                 else
                 {
-                    average[0] = NULL;
+                    average[0] = float_nan;
                 }
 
                 pix[2] = 1; // Reset channel coordinate to 1
@@ -294,7 +298,11 @@ namespace spacew
                         // If inside image
                         if (xpix >= 0 && xpix < nx && ypix >= 0 && ypix < ny)
                         {
-                            values.push_back(image[xpix + nx * ypix]);
+                            float value = image[xpix + nx * ypix];
+                            if (std::isfinite(value))
+                            {
+                                values.push_back(value);
+                            }
                         }
                     }
                 }
@@ -305,8 +313,8 @@ namespace spacew
                 {
                     sum += v;
                 }
-                float avg = NULL;
-                sigma_image[i + nx * j] = NULL;
+                float avg = float_nan;
+                sigma_image[i + nx * j] = float_nan;
                 if (values.size() > 0)
                 {
                     avg = sum / values.size(); // Average
@@ -373,7 +381,7 @@ namespace spacew
 
         for (int k = bchan; k < echan; k++)
         {
-            cout << "Working on channel: " << k + 1 << " of " << echan+1 << "\t\r" << std::flush;
+            cout << "Working on channel: " << k + 1 << " of " << echan + 1 << "\t\r" << std::flush;
             infits.read_channel_image(k, image);
             get_plane_sigma_image(image, nx, ny, sigma_image, m);
             for (int i = 0; i < sigma_image.size(); i++)
@@ -422,11 +430,10 @@ namespace spacew
 
         // Calculate weights cube and open it
 
-        cout<<"Calculating local weights"<<endl;
+        cout << "Calculating local weights" << endl;
         local_weights(infile, "!weights_" + infile, size, bchan, echan);
 
         spacew::fits winfits;
-        cout<<"Opening wfiles"<<endl;
 
         if (!winfits.open("weights_" + infile))
         {
@@ -442,8 +449,9 @@ namespace spacew
         float average[1];
         float channelvalue[1];
         float wchannelvalue[1];
+        int anynull = 0;
 
-        cout<<"Selecting channels"<<endl;
+        cout << "Selecting channels" << endl;
 
         // Select channel range for splat
         if (echan == 0)
@@ -476,10 +484,10 @@ namespace spacew
                 { // Loop over channels
                     pix[2] = k + 1;
                     // Read actual channel value
-                    fits_read_pix(infits.get_fptr(), TFLOAT, pix, 1, NULL, channelvalue, NULL, &status);
+                    fits_read_pix(infits.get_fptr(), TFLOAT, pix, 1, &float_nan, channelvalue, &anynull, &status);
 
                     // Read weight of channel value
-                    fits_read_pix(winfits.get_fptr(), TFLOAT, pix, 1, NULL, wchannelvalue, NULL, &status);
+                    fits_read_pix(winfits.get_fptr(), TFLOAT, pix, 1, &float_nan, wchannelvalue, &anynull, &status);
 
                     if (std::isfinite(channelvalue[0]) && std::isfinite(wchannelvalue[0]))
                     {
@@ -494,7 +502,7 @@ namespace spacew
                 }
                 else
                 {
-                    average[0] = NULL;
+                    average[0] = float_nan;
                 }
 
                 pix[2] = 1; // Reset channel coordinate to 1
