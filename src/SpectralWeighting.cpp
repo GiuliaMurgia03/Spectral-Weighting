@@ -36,11 +36,8 @@ namespace spacew
             return false;
         }
 
-        cout << "Cloning header" << endl;
         outfits.clone_header(infits);
-        cout << "Setting naxes" << endl;
         outfits.set_naxes(2, 1);
-        cout << "Inizializing all pixels in all channels to 0" << endl;
         outfits.fill(0);
 
         // Splat main loop
@@ -69,7 +66,7 @@ namespace spacew
                     pix[2] = k + 1;
                     fits_read_pix(infits.get_fptr(), TFLOAT, pix, 1, NULL, channelvalue, NULL, &status);
 
-                    float w = 1; // ADD ROUTINE TO CALCULATE WEIGHT
+                    float w = 1;
 
                     if (std::isfinite(channelvalue[0]))
                     {
@@ -146,9 +143,7 @@ namespace spacew
             return false;
         }
 
-        cout << "Cloning header" << endl;
         outfits.clone_header(infits);
-        cout << "Inizializing all pixels in all channels to 0" << endl;
         outfits.fill(0);
 
         // Smoothing main loop
@@ -222,9 +217,7 @@ namespace spacew
             return false;
         }
 
-        cout << "Cloning header" << endl;
         outfits.clone_header(infits);
-        cout << "Inizializing all pixels in all channels to 0" << endl;
         outfits.fill(0);
 
         // Smoothing main loop
@@ -329,9 +322,7 @@ namespace spacew
             return false;
         }
 
-        cout << "Cloning header" << endl;
         outfits.clone_header(infits);
-        cout << "Inizializing all pixels in all channels to 0" << endl;
         outfits.fill(0);
 
         // Smoothing main loop
@@ -358,6 +349,111 @@ namespace spacew
 
         // Close files
         if (!infits.close()) // Check that worked
+        {
+            return false;
+        }
+
+        if (!outfits.close()) // Check that worked
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+
+
+    bool SpectralWeighting::weighted_splat(const string &infile, const string &outfile, int size)
+    {
+        // Open input file and create output file
+        int status = 0;
+        spacew::fits infits;
+
+        if (!infits.open(infile))
+        {
+            return false;
+        }
+
+        spacew::fits outfits;
+        if (!outfits.create(outfile))
+        {
+            return false;
+        }
+
+        outfits.clone_header(infits);
+        outfits.set_naxes(2, 1);
+        outfits.fill(0);
+
+        // Calculate weights cube and open it 
+        local_weights(infile, "weights_"+infile, size);
+
+        spacew::fits winfits;
+
+        if (!winfits.open("weights_"+infile))
+        {
+            return false;
+        }
+
+        // Weigthed splat main loop
+        long pix[4];
+        pix[0] = 1;
+        pix[1] = 1;
+        pix[2] = 1;
+        pix[3] = 1;
+        float average[1];
+        float channelvalue[1];
+        float wchannelvalue[1];
+
+        for (int j = 0; j < infits.get_naxes(1); j++)
+        {
+            cout << "Working on row: " << j + 1 << " of " << infits.get_naxes(1) << endl;
+            for (int i = 0; i < infits.get_naxes(0); i++)
+            {
+                pix[0] = i + 1;
+                pix[1] = j + 1;
+
+                average[0] = 0;
+                float wsum = 0;
+                float sum = 0;
+
+                for (int k = 0; k < infits.get_naxes(2); k++)
+                { // Loop over channels
+                    pix[2] = k + 1;
+                    // Read actual channel value
+                    fits_read_pix(infits.get_fptr(), TFLOAT, pix, 1, NULL, channelvalue, NULL, &status);
+
+                    // Read weight of channel value
+                    fits_read_pix(winfits.get_fptr(), TFLOAT, pix, 1, NULL, wchannelvalue, NULL, &status);
+
+                    if (std::isfinite(channelvalue[0]) && std::isfinite(wchannelvalue[0]))
+                    {
+                        sum = sum + wchannelvalue[0] * channelvalue[0];
+                        wsum = wsum + wchannelvalue[0];
+                    }
+                }
+
+                if (wsum > 0)
+                {
+                    average[0] = sum / wsum;
+                }
+                else
+                {
+                    average[0] = NULL;
+                }
+
+                pix[2] = 1; // Reset channel coordinate to 1
+
+                fits_write_pix(outfits.get_fptr(), TFLOAT, pix, 1, average, &status);
+            }
+        }
+
+        // Close files
+        if (!infits.close()) // Check that worked
+        {
+            return false;
+        }
+
+        if (!winfits.close()) // Check that worked
         {
             return false;
         }

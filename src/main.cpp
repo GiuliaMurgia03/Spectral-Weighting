@@ -18,6 +18,7 @@ int main(int argc, char *argv[])
         cout << "SpectralWeighting -smooth input.fits output.fits" << endl;
         cout << "SpectralWeighting -local_noise input.fits output.fits size" << endl;
         cout << "SpectralWeighting -local_weights input.fits output.fits size" << endl;
+        cout << "SpectralWeighting -weighted_splat input.fits output.fits size" << endl;
 
         return EXIT_SUCCESS;
     }
@@ -44,6 +45,12 @@ int main(int argc, char *argv[])
 
     // Local Weight
     if (argc == 5 && option == "-local_weights" && !sp.local_weights(argv[2], argv[3], std::stoi(argv[4])))
+    {
+        return EXIT_FAILURE;
+    }
+
+    // Weighted Splat
+    if (argc == 5 && option == "-weighted_splat" && !sp.weighted_splat(argv[2], argv[3], std::stoi(argv[4])))
     {
         return EXIT_FAILURE;
     }
