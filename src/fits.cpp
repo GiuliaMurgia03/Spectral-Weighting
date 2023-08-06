@@ -169,13 +169,8 @@ namespace spacew
             cout << "Naxes " << i << " : " << naxes[i] << endl;
         }
 
-        long nvalues = naxes[0];
-        for (int i = 1; i < naxis; i++)
-        {
-            nvalues = nvalues * naxes[i];
-        }
+        long nvalues = naxes[0] * naxes[1];
 
-        cout << nvalues << endl;
         float pixvalues[nvalues];
 
         for (int i = 0; i < nvalues; i++)
@@ -183,7 +178,18 @@ namespace spacew
             pixvalues[i] = value;
         }
 
-        fits_write_pix(fptr, TFLOAT, pix, nvalues, pixvalues, &status);
+        if (naxis >= 3)
+        {
+            for (int c = 0; c < naxes[2]; c++)
+            {
+                pix[2] = c+1;
+                fits_write_pix(fptr, TFLOAT, pix, nvalues, pixvalues, &status);
+            }
+        }
+        else if (naxis == 2)
+        {
+            fits_write_pix(fptr, TFLOAT, pix, nvalues, pixvalues, &status);
+        }
 
         if (status) // Check that worked
         {
@@ -193,20 +199,21 @@ namespace spacew
         return true;
     }
 
-
-    bool fits::read_channel_image(const int& channel, vector <float> &image){
+    bool fits::read_channel_image(const int &channel, vector<float> &image)
+    {
 
         long pix[naxis];
-        status=0;
+        status = 0;
 
-        for(int i=0; i<naxis; i++) {
-            pix[i]=1;
+        for (int i = 0; i < naxis; i++)
+        {
+            pix[i] = 1;
         }
 
         pix[0] = 1;
         pix[1] = 1;
         pix[2] = channel + 1;
-        long nvalues=naxes[0]*naxes[1];
+        long nvalues = naxes[0] * naxes[1];
 
         fits_read_pix(fptr, TFLOAT, pix, nvalues, NULL, &image[0], NULL, &status);
 
@@ -216,22 +223,24 @@ namespace spacew
             return false;
         }
 
-        return true; 
+        return true;
     }
 
-    bool fits::write_channel_image(const int& channel, vector <float> &image){
+    bool fits::write_channel_image(const int &channel, vector<float> &image)
+    {
 
         long pix[naxis];
-        status=0;
+        status = 0;
 
-        for(int i=0; i<naxis; i++) {
-            pix[i]=1;
+        for (int i = 0; i < naxis; i++)
+        {
+            pix[i] = 1;
         }
 
         pix[0] = 1;
         pix[1] = 1;
         pix[2] = channel + 1;
-        long nvalues=naxes[0]*naxes[1];
+        long nvalues = naxes[0] * naxes[1];
 
         fits_write_pix(fptr, TFLOAT, pix, nvalues, &image[0], &status);
 
@@ -241,8 +250,7 @@ namespace spacew
             return false;
         }
 
-        return true; 
-
+        return true;
     }
 
 }

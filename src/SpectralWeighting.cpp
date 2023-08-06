@@ -19,7 +19,7 @@ namespace spacew
         cout << "Clean up" << endl;
     }
 
-    bool SpectralWeighting::splat(const string &infile, const string &outfile)
+    bool SpectralWeighting::splat(const string &infile, const string &outfile, int bchan, int echan)
     {
         // Open input file and create output file
         int status = 0;
@@ -49,9 +49,24 @@ namespace spacew
         float average[1];
         float channelvalue[1];
 
+        // Select channel range for splat
+        if (echan == 0)
+        {
+            echan = infits.get_naxes(2);
+        }
+        else if (echan > 0)
+        {
+            echan = echan - 1;
+        }
+        if (bchan > 0)
+        {
+            bchan = bchan - 1;
+        }
+        cout << "Splat cube from channel " << bchan + 1 << " to channel " << echan + 1 << endl;
+
         for (int j = 0; j < infits.get_naxes(1); j++)
         {
-            cout << "Working on row: " << j + 1 << " of " << infits.get_naxes(1) << endl;
+            cout << "Working on row: " << j + 1 << " of " << infits.get_naxes(1) << "\t\r" << std::flush;
             for (int i = 0; i < infits.get_naxes(0); i++)
             {
                 pix[0] = i + 1;
@@ -61,7 +76,7 @@ namespace spacew
                 float wsum = 0;
                 float sum = 0;
 
-                for (int k = 0; k < infits.get_naxes(2); k++)
+                for (int k = bchan; k < echan; k++)
                 { // Loop over channels
                     pix[2] = k + 1;
                     fits_read_pix(infits.get_fptr(), TFLOAT, pix, 1, NULL, channelvalue, NULL, &status);
@@ -89,6 +104,8 @@ namespace spacew
                 fits_write_pix(outfits.get_fptr(), TFLOAT, pix, 1, average, &status);
             }
         }
+
+        cout << endl;
 
         // Close files
         if (!infits.close()) // Check that worked
@@ -156,7 +173,7 @@ namespace spacew
 
         for (int k = 0; k < nz; k++)
         {
-            cout << "Working on channel: " << k + 1 << " of " << nz << endl;
+            cout << "Working on channel: " << k + 1 << " of " << nz << "\t\r" << std::flush;
             infits.read_channel_image(k, image);
 
             for (int j = 0; j < ny; j++)
@@ -182,6 +199,8 @@ namespace spacew
 
             outfits.write_channel_image(k, smooth_image);
         }
+
+        cout << endl;
 
         // Close files
         if (!infits.close()) // Check that worked
@@ -232,11 +251,13 @@ namespace spacew
 
         for (int k = 0; k < nz; k++)
         {
-            cout << "Working on channel: " << k + 1 << " of " << nz << endl;
+            cout << "Working on channel: " << k + 1 << " of " << nz << "\t\r" << std::flush;
             infits.read_channel_image(k, image);
             get_plane_sigma_image(image, nx, ny, sigma_image, m);
             outfits.write_channel_image(k, sigma_image);
         }
+
+        cout << endl;
 
         // Close files
         if (!infits.close()) // Check that worked
@@ -302,7 +323,7 @@ namespace spacew
         return true;
     }
 
-    bool SpectralWeighting::local_weights(const string &infile, const string &outfile, int size)
+    bool SpectralWeighting::local_weights(const string &infile, const string &outfile, int size, int bchan, int echan)
     {
 
         // Open input file and create output file
@@ -335,17 +356,34 @@ namespace spacew
 
         int m = 1 + 2 * size; // It's always odd
 
-        for (int k = 0; k < nz; k++)
+        // Select channel range for Weights' cube
+        if (echan == 0)
         {
-            cout << "Working on channel: " << k + 1 << " of " << nz << endl;
+            echan = infits.get_naxes(2);
+        }
+        else if (echan > 0)
+        {
+            echan = echan - 1;
+        }
+        if (bchan > 0)
+        {
+            bchan = bchan - 1;
+        }
+        cout << "Weights' cube from channel " << bchan + 1 << " to channel " << echan + 1 << endl;
+
+        for (int k = bchan; k < echan; k++)
+        {
+            cout << "Working on channel: " << k + 1 << " of " << echan+1 << "\t\r" << std::flush;
             infits.read_channel_image(k, image);
             get_plane_sigma_image(image, nx, ny, sigma_image, m);
             for (int i = 0; i < sigma_image.size(); i++)
             {
-                sigma_image[i] = 1 / pow(sigma_image[i], 2); 
+                sigma_image[i] = 1 / pow(sigma_image[i], 2);
             }
             outfits.write_channel_image(k, sigma_image);
         }
+
+        cout << endl;
 
         // Close files
         if (!infits.close()) // Check that worked
@@ -361,9 +399,7 @@ namespace spacew
         return true;
     }
 
-
-
-    bool SpectralWeighting::weighted_splat(const string &infile, const string &outfile, int size)
+    bool SpectralWeighting::weighted_splat(const string &infile, const string &outfile, int size, int bchan, int echan)
     {
         // Open input file and create output file
         int status = 0;
@@ -384,12 +420,15 @@ namespace spacew
         outfits.set_naxes(2, 1);
         outfits.fill(0);
 
-        // Calculate weights cube and open it 
-        local_weights(infile, "weights_"+infile, size);
+        // Calculate weights cube and open it
+
+        cout<<"Calculating local weights"<<endl;
+        local_weights(infile, "!weights_" + infile, size, bchan, echan);
 
         spacew::fits winfits;
+        cout<<"Opening wfiles"<<endl;
 
-        if (!winfits.open("weights_"+infile))
+        if (!winfits.open("weights_" + infile))
         {
             return false;
         }
@@ -404,9 +443,26 @@ namespace spacew
         float channelvalue[1];
         float wchannelvalue[1];
 
+        cout<<"Selecting channels"<<endl;
+
+        // Select channel range for splat
+        if (echan == 0)
+        {
+            echan = infits.get_naxes(2);
+        }
+        else if (echan > 0)
+        {
+            echan = echan - 1;
+        }
+        if (bchan > 0)
+        {
+            bchan = bchan - 1;
+        }
+        cout << "Splat cube from channel " << bchan + 1 << " to channel " << echan + 1 << endl;
+
         for (int j = 0; j < infits.get_naxes(1); j++)
         {
-            cout << "Working on row: " << j + 1 << " of " << infits.get_naxes(1) << endl;
+            cout << "Working on row: " << j + 1 << " of " << infits.get_naxes(1) << "\t\r" << std::flush;
             for (int i = 0; i < infits.get_naxes(0); i++)
             {
                 pix[0] = i + 1;
@@ -416,7 +472,7 @@ namespace spacew
                 float wsum = 0;
                 float sum = 0;
 
-                for (int k = 0; k < infits.get_naxes(2); k++)
+                for (int k = bchan; k < echan; k++)
                 { // Loop over channels
                     pix[2] = k + 1;
                     // Read actual channel value
@@ -446,6 +502,8 @@ namespace spacew
                 fits_write_pix(outfits.get_fptr(), TFLOAT, pix, 1, average, &status);
             }
         }
+
+        cout << endl;
 
         // Close files
         if (!infits.close()) // Check that worked

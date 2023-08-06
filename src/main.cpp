@@ -14,11 +14,11 @@ int main(int argc, char *argv[])
     if ((argc == 2 && option == "-help"))
     {
         cout << "Type one of the following:" << endl;
-        cout << "SpectralWeighting -splat input.fits output.fits" << endl;
+        cout << "SpectralWeighting -splat input.fits output.fits [bchan echan]" << endl;
+        cout << "SpectralWeighting -weighted_splat input.fits output.fits size [bchan echan]" << endl;
         cout << "SpectralWeighting -smooth input.fits output.fits" << endl;
         cout << "SpectralWeighting -local_noise input.fits output.fits size" << endl;
         cout << "SpectralWeighting -local_weights input.fits output.fits size" << endl;
-        cout << "SpectralWeighting -weighted_splat input.fits output.fits size" << endl;
 
         return EXIT_SUCCESS;
     }
@@ -26,9 +26,17 @@ int main(int argc, char *argv[])
     SpectralWeighting sp;
 
     // Splat
-    if (argc == 4 && option == "-splat" && !sp.splat(argv[2], argv[3]))
+    if (argc >= 4 && option == "-splat")
     {
-        return EXIT_FAILURE;
+        if (argc == 4 && !sp.splat(argv[2], argv[3]))
+        {
+            return EXIT_FAILURE;
+        }
+
+        if (argc == 6 && !sp.splat(argv[2], argv[3], std::stoi(argv[4]), std::stoi(argv[5])))
+        {
+            return EXIT_FAILURE;
+        }
     }
 
     // Smooth
@@ -50,9 +58,17 @@ int main(int argc, char *argv[])
     }
 
     // Weighted Splat
-    if (argc == 5 && option == "-weighted_splat" && !sp.weighted_splat(argv[2], argv[3], std::stoi(argv[4])))
+    if (argc >= 4 && option == "-weighted_splat")
     {
-        return EXIT_FAILURE;
+        if (argc == 5 && !sp.weighted_splat(argv[2], argv[3], std::stoi(argv[4])))
+        {
+            return EXIT_FAILURE;
+        }
+
+        if (argc == 7 && !sp.weighted_splat(argv[2], argv[3], std::stoi(argv[4]), std::stoi(argv[5]), std::stoi(argv[6])))
+        {
+            return EXIT_FAILURE;
+        }
     }
 
     return EXIT_SUCCESS;
