@@ -19,6 +19,7 @@ int main(int argc, char *argv[])
         cout << "SpectralWeighting -smooth input.fits output.fits" << endl;
         cout << "SpectralWeighting -local_noise input.fits output.fits size" << endl;
         cout << "SpectralWeighting -local_weights input.fits output.fits size" << endl;
+        cout << "SpectralWeighting -merge filelist.txt output.fits [bchan echan]" << endl;
         cout << "SpectralWeighting -weighted_merge filelist.txt output.fits size [bchan echan]" << endl;
 
         return EXIT_SUCCESS;
@@ -82,6 +83,21 @@ int main(int argc, char *argv[])
         }
 
         if (argc == 7 && !sp.weighted_merge(argv[2], argv[3], std::stoi(argv[4]), std::stoi(argv[5]), std::stoi(argv[6])))
+        {
+            return EXIT_FAILURE;
+        }
+    }
+
+
+    // Merge 
+    if (argc >= 3 && option == "-merge")
+    {
+        if (argc == 4 && !sp.weighted_merge(argv[2], argv[3], 0.0))
+        {
+            return EXIT_FAILURE;
+        }
+
+        if (argc == 6 && !sp.weighted_merge(argv[2], argv[3], 0.0, std::stoi(argv[4]), std::stoi(argv[5])))
         {
             return EXIT_FAILURE;
         }

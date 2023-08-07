@@ -42,14 +42,6 @@ namespace spacew
         outfits.fill(0);
 
         // Splat main loop
-        long pix[4];
-        pix[0] = 1;
-        pix[1] = 1;
-        pix[2] = 1;
-        pix[3] = 1;
-        float average[1];
-        float channelvalue[1];
-
         // Select channel range for splat
         if (echan == 0)
         {
@@ -64,52 +56,52 @@ namespace spacew
             bchan = bchan - 1;
         }
         cout << "Splat cube from channel " << bchan + 1 << " to channel " << echan + 1 << endl;
-        cout << "Using null val " << float_nan << endl;
 
-        int anynull = 0;
+        int nx = infits.get_naxes(0);
+        int ny = infits.get_naxes(1);
+        int nz = infits.get_naxes(2);
+        vector<float> image(nx * ny);
+        vector<float> sum_image(nx * ny, 0.0);
+        vector<float> wsum_image(nx * ny, 0.0);
+        vector<float> splat_image(nx * ny, float_nan);
 
-        for (int j = 0; j < infits.get_naxes(1); j++)
+        for (int k = bchan; k < echan; k++)
         {
-            cout << "Working on row: " << j + 1 << " of " << infits.get_naxes(1) << "\t\r" << std::flush;
-            for (int i = 0; i < infits.get_naxes(0); i++)
+            // Loop over channels
+            cout << "Working on channel: " << k + 1 << " of " << echan + 1 << "\t\r" << std::flush;
+
+            infits.read_channel_image(k, image);
+
+            for (int idx = 0; idx < nx * ny; idx++)
             {
-                pix[0] = i + 1;
-                pix[1] = j + 1;
 
-                average[0] = 0;
-                float wsum = 0;
-                float sum = 0;
-
-                for (int k = bchan; k < echan; k++)
-                { // Loop over channels
-                    pix[2] = k + 1;
-                    fits_read_pix(infits.get_fptr(), TFLOAT, pix, 1, &float_nan, channelvalue, &anynull, &status);
-
-                    float w = 1;
-
-                    if (std::isfinite(channelvalue[0]))
-                    {
-                        sum = sum + w * channelvalue[0];
-                        wsum = wsum + w;
-                    }
-                }
-
-                if (wsum > 0)
+                if (std::isfinite(image[idx]))
                 {
-                    average[0] = sum / wsum;
+                    sum_image[idx] += image[idx];
+                    wsum_image[idx] += 1.0;
                 }
-                else
+            }
+
+            for (int idx = 0; idx < nx * ny; idx++)
+            {
+
+                if (std::isfinite(sum_image[idx]) && std::isfinite(wsum_image[idx]) && wsum_image[idx] > 0)
                 {
-                    average[0] = float_nan;
+                    splat_image[idx] = sum_image[idx] / wsum_image[idx];
                 }
-
-                pix[2] = 1; // Reset channel coordinate to 1
-
-                fits_write_pix(outfits.get_fptr(), TFLOAT, pix, 1, average, &status);
             }
         }
-
         cout << endl;
+
+        long pix[4];
+        pix[0] = 1;
+        pix[1] = 1;
+        pix[2] = 1;
+        pix[3] = 1;
+        long npixels = nx * ny;
+
+        // Write the final spat image
+        fits_write_pix(outfits.get_fptr(), TFLOAT, pix, npixels, &splat_image[0], &status);
 
         // Close files
         if (!infits.close()) // Check that worked
@@ -522,54 +514,67 @@ namespace spacew
         return true;
     }
 
+    bool SpectralWeighting::weighted_merge(const string &filelist, const string &outfile, int size, int bchan, int echan)
+    {
 
-    bool SpectralWeighting::weighted_merge(const string &filelist, const string &outfile, int size, int bchan, int echan) {
+        // If size=0, no weight is applied
 
         // Open filelist
         ifstream in(filelist);
-        if(!in.good()) {
-            cout<< "Cannot open filelist"<<endl;
+        if (!in.good())
+        {
+            cout << "Cannot open filelist" << endl;
             return false;
         }
 
         // Read files
-        vector <string> files;
-        while(1){
+        vector<string> files;
+        while (1)
+        {
             string s;
-            getline(in,s);
-            if(s.length()>0 && s[0]!='#') {
+            getline(in, s);
+            if (s.length() > 0 && s[0] != '#')
+            {
                 files.push_back(s);
             }
-            if(in.eof()) break;
+            if (in.eof())
+                break;
         }
 
-        if(files.size()==0) {
-            cout<<"No input files found in filelist"<<endl;
+        if (files.size() == 0)
+        {
+            cout << "No input files found in filelist" << endl;
             return false;
         }
 
-        cout<<"Processing "<<files.size()<<" files"<<endl;
+        cout << "Processing " << files.size() << " files" << endl;
 
-        //Produce weights cubes
-        for(int i=0; i<files.size(); i++){
-            if(!local_weights(files[i], "!weights_"+files[i], size, bchan, echan)) {
-                return false;
+        // Produce weights cubes
+        if (size > 0.0)
+        {
+            for (int i = 0; i < files.size(); i++)
+            {
+                if (!local_weights(files[i], "!weights_" + files[i], size, bchan, echan))
+                {
+                    return false;
+                }
             }
         }
 
         // Open input and output files
         int status = 0;
-        vector <spacew::fits> vinfits(files.size());
-        vector <spacew::fits> vwinfits(files.size());
+        vector<spacew::fits> vinfits(files.size());
+        vector<spacew::fits> vwinfits(files.size());
 
-        for(int i=0; i<files.size(); i++){
+        for (int i = 0; i < files.size(); i++)
+        {
             if (!vinfits[i].open(files[i]))
             {
-            return false;
+                return false;
             }
-            if (!vwinfits[i].open("weights_"+files[i]))
+            if (size > 0.0 && !vwinfits[i].open("weights_" + files[i]))
             {
-            return false;
+                return false;
             }
         }
 
@@ -607,65 +612,73 @@ namespace spacew
             // Loop over channels
             cout << "Working on channel: " << k + 1 << " of " << echan + 1 << "\t\r" << std::flush;
 
-            vector<float> image(nx * ny, 0.0);
-            vector<float> wimage(nx * ny, 0.0);
             vector<float> sum_image(nx * ny, 0.0);
             vector<float> wsum_image(nx * ny, 0.0);
             vector<float> merge_image(nx * ny, float_nan);
 
             // Loop over files
-            for(int i=0; i<files.size(); i++) {
+            for (int i = 0; i < files.size(); i++)
+            {
+
+                vector<float> image(nx * ny, 0.0);
+
+                float winit = 0.0;
+                if (size == 0)
+                {
+                    winit = 1.0;
+                }
+                vector<float> wimage(nx * ny, winit);
 
                 vinfits[i].read_channel_image(k, image);
-                vwinfits[i].read_channel_image(k, wimage);
+                if (size > 0)
+                {
+                    vwinfits[i].read_channel_image(k, wimage);
+                }
 
                 for (int idx = 0; idx < nx * ny; idx++)
                 {
-
                     if (std::isfinite(wimage[idx]) && std::isfinite(image[idx]))
                     {
                         sum_image[idx] += image[idx] * wimage[idx];
                         wsum_image[idx] += wimage[idx];
                     }
                 }
+            }
+            for (int idx = 0; idx < nx * ny; idx++)
+            {
 
-                for (int idx = 0; idx < nx * ny; idx++)
+                if (std::isfinite(sum_image[idx]) && std::isfinite(wsum_image[idx]) && wsum_image[idx] > 0)
                 {
-
-                    if (std::isfinite(sum_image[idx]) && std::isfinite(wsum_image[idx]) && wsum_image[idx] > 0)
-                    {
-                        merge_image[idx] = sum_image[idx] / wsum_image[idx];
-                    }
+                    merge_image[idx] = sum_image[idx] / wsum_image[idx];
                 }
-            }   
+            }
 
             long pix[4];
             pix[0] = 1;
             pix[1] = 1;
-            pix[2] = k+1;
+            pix[2] = k + 1;
             pix[3] = 1;
             long npixels = nx * ny;
 
             // Write the final merge image
             fits_write_pix(outfits.get_fptr(), TFLOAT, pix, npixels, &merge_image[0], &status);
- 
         }
         cout << endl;
 
-        
         // Close files
-        for(int i=0; i<files.size(); i++){
+        for (int i = 0; i < files.size(); i++)
+        {
 
             if (!vinfits[i].close()) // Check that worked
             {
                 return false;
             }
 
-            if (!vwinfits[i].close()) // Check that worked
+            if (size > 0 && !vwinfits[i].close()) // Check that worked
             {
                 return false;
             }
-        }    
+        }
 
         if (!outfits.close()) // Check that worked
         {
