@@ -429,9 +429,8 @@ namespace spacew
         outfits.fill(0);
 
         // Calculate weights cube and open it
-
         cout << "Calculating local weights" << endl;
-        local_weights(infile, "!weights_" + infile, size, bchan, echan);
+        local_weights(infile, "!weights_" + infile, size, bchan, echan); // Create a fits cube creating weights
 
         spacew::fits winfits;
 
@@ -441,18 +440,6 @@ namespace spacew
         }
 
         // Weigthed splat main loop
-        long pix[4];
-        pix[0] = 1;
-        pix[1] = 1;
-        pix[2] = 1;
-        pix[3] = 1;
-        float average[1];
-        float channelvalue[1];
-        float wchannelvalue[1];
-        int anynull = 0;
-
-        cout << "Selecting channels" << endl;
-
         // Select channel range for splat
         if (echan == 0)
         {
@@ -468,50 +455,53 @@ namespace spacew
         }
         cout << "Splat cube from channel " << bchan + 1 << " to channel " << echan + 1 << endl;
 
-        for (int j = 0; j < infits.get_naxes(1); j++)
+        int nx = infits.get_naxes(0);
+        int ny = infits.get_naxes(1);
+        int nz = infits.get_naxes(2);
+        vector<float> image(nx * ny);
+        vector<float> wimage(nx * ny);
+        vector<float> sum_image(nx * ny, 0.0);
+        vector<float> wsum_image(nx * ny, 0.0);
+        vector<float> splat_image(nx * ny, float_nan);
+
+        for (int k = bchan; k < echan; k++)
         {
-            cout << "Working on row: " << j + 1 << " of " << infits.get_naxes(1) << "\t\r" << std::flush;
-            for (int i = 0; i < infits.get_naxes(0); i++)
+            // Loop over channels
+            cout << "Working on channel: " << k + 1 << " of " << echan + 1 << "\t\r" << std::flush;
+
+            infits.read_channel_image(k, image);
+            winfits.read_channel_image(k, wimage);
+
+            for (int idx = 0; idx < nx * ny; idx++)
             {
-                pix[0] = i + 1;
-                pix[1] = j + 1;
 
-                average[0] = 0;
-                float wsum = 0;
-                float sum = 0;
-
-                for (int k = bchan; k < echan; k++)
-                { // Loop over channels
-                    pix[2] = k + 1;
-                    // Read actual channel value
-                    fits_read_pix(infits.get_fptr(), TFLOAT, pix, 1, &float_nan, channelvalue, &anynull, &status);
-
-                    // Read weight of channel value
-                    fits_read_pix(winfits.get_fptr(), TFLOAT, pix, 1, &float_nan, wchannelvalue, &anynull, &status);
-
-                    if (std::isfinite(channelvalue[0]) && std::isfinite(wchannelvalue[0]))
-                    {
-                        sum = sum + wchannelvalue[0] * channelvalue[0];
-                        wsum = wsum + wchannelvalue[0];
-                    }
-                }
-
-                if (wsum > 0)
+                if (std::isfinite(wimage[idx]) && std::isfinite(image[idx]))
                 {
-                    average[0] = sum / wsum;
+                    sum_image[idx] += image[idx] * wimage[idx];
+                    wsum_image[idx] += wimage[idx];
                 }
-                else
+            }
+
+            for (int idx = 0; idx < nx * ny; idx++)
+            {
+
+                if (std::isfinite(sum_image[idx]) && std::isfinite(wsum_image[idx]) && wsum_image[idx] > 0)
                 {
-                    average[0] = float_nan;
+                    splat_image[idx] = sum_image[idx] / wsum_image[idx];
                 }
-
-                pix[2] = 1; // Reset channel coordinate to 1
-
-                fits_write_pix(outfits.get_fptr(), TFLOAT, pix, 1, average, &status);
             }
         }
-
         cout << endl;
+
+        long pix[4];
+        pix[0] = 1;
+        pix[1] = 1;
+        pix[2] = 1;
+        pix[3] = 1;
+        long npixels = nx * ny;
+
+        // Write the final spat image
+        fits_write_pix(outfits.get_fptr(), TFLOAT, pix, npixels, &splat_image[0], &status);
 
         // Close files
         if (!infits.close()) // Check that worked
