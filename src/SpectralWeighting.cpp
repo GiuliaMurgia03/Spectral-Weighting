@@ -522,4 +522,157 @@ namespace spacew
         return true;
     }
 
+
+    bool SpectralWeighting::weighted_merge(const string &filelist, const string &outfile, int size, int bchan, int echan) {
+
+        // Open filelist
+        ifstream in(filelist);
+        if(!in.good()) {
+            cout<< "Cannot open filelist"<<endl;
+            return false;
+        }
+
+        // Read files
+        vector <string> files;
+        while(1){
+            string s;
+            getline(in,s);
+            if(s.length()>0 && s[0]!='#') {
+                files.push_back(s);
+            }
+            if(in.eof()) break;
+        }
+
+        if(files.size()==0) {
+            cout<<"No input files found in filelist"<<endl;
+            return false;
+        }
+
+        cout<<"Processing "<<files.size()<<" files"<<endl;
+
+        //Produce weights cubes
+        for(int i=0; i<files.size(); i++){
+            if(!local_weights(files[i], "!weights_"+files[i], size, bchan, echan)) {
+                return false;
+            }
+        }
+
+        // Open input and output files
+        int status = 0;
+        vector <spacew::fits> vinfits(files.size());
+        vector <spacew::fits> vwinfits(files.size());
+
+        for(int i=0; i<files.size(); i++){
+            if (!vinfits[i].open(files[i]))
+            {
+            return false;
+            }
+            if (!vwinfits[i].open("weights_"+files[i]))
+            {
+            return false;
+            }
+        }
+
+        spacew::fits outfits;
+        if (!outfits.create(outfile))
+        {
+            return false;
+        }
+
+        outfits.clone_header(vinfits[0]);
+        outfits.fill(0);
+
+        // Weigthed Merge main loop
+        // Select channel range for merge
+        if (echan == 0)
+        {
+            echan = vinfits[0].get_naxes(2);
+        }
+        else if (echan > 0)
+        {
+            echan = echan - 1;
+        }
+        if (bchan > 0)
+        {
+            bchan = bchan - 1;
+        }
+        cout << "Merge cube from channel " << bchan + 1 << " to channel " << echan + 1 << endl;
+
+        int nx = vinfits[0].get_naxes(0);
+        int ny = vinfits[0].get_naxes(1);
+        int nz = vinfits[0].get_naxes(2);
+
+        for (int k = bchan; k < echan; k++)
+        {
+            // Loop over channels
+            cout << "Working on channel: " << k + 1 << " of " << echan + 1 << "\t\r" << std::flush;
+
+            vector<float> image(nx * ny, 0.0);
+            vector<float> wimage(nx * ny, 0.0);
+            vector<float> sum_image(nx * ny, 0.0);
+            vector<float> wsum_image(nx * ny, 0.0);
+            vector<float> merge_image(nx * ny, float_nan);
+
+            // Loop over files
+            for(int i=0; i<files.size(); i++) {
+
+                vinfits[i].read_channel_image(k, image);
+                vwinfits[i].read_channel_image(k, wimage);
+
+                for (int idx = 0; idx < nx * ny; idx++)
+                {
+
+                    if (std::isfinite(wimage[idx]) && std::isfinite(image[idx]))
+                    {
+                        sum_image[idx] += image[idx] * wimage[idx];
+                        wsum_image[idx] += wimage[idx];
+                    }
+                }
+
+                for (int idx = 0; idx < nx * ny; idx++)
+                {
+
+                    if (std::isfinite(sum_image[idx]) && std::isfinite(wsum_image[idx]) && wsum_image[idx] > 0)
+                    {
+                        merge_image[idx] = sum_image[idx] / wsum_image[idx];
+                    }
+                }
+            }   
+
+            long pix[4];
+            pix[0] = 1;
+            pix[1] = 1;
+            pix[2] = k+1;
+            pix[3] = 1;
+            long npixels = nx * ny;
+
+            // Write the final merge image
+            fits_write_pix(outfits.get_fptr(), TFLOAT, pix, npixels, &merge_image[0], &status);
+ 
+        }
+        cout << endl;
+
+        
+        // Close files
+        for(int i=0; i<files.size(); i++){
+
+            if (!vinfits[i].close()) // Check that worked
+            {
+                return false;
+            }
+
+            if (!vwinfits[i].close()) // Check that worked
+            {
+                return false;
+            }
+        }    
+
+        if (!outfits.close()) // Check that worked
+        {
+            return false;
+        }
+
+        return true;
+    }
+
 }
