@@ -35,6 +35,12 @@ namespace spacew
         return naxes[i];
     }
 
+    bool fits::set_naxis(const int &i) {
+        
+        naxis=i;
+        return true;
+    }
+
     bool fits::set_naxes(const int &i, const long &value)
     {
         if (i >= 0 && i < naxis)

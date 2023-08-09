@@ -148,8 +148,6 @@ namespace spacew
             return false;
         }
 
-        cout << "Creating file " << outfile << endl;
-
         spacew::fits outfits;
         if (!outfits.create(outfile))
         {
@@ -183,10 +181,12 @@ namespace spacew
                             int xpix = i + ii - int(m / 2.0 + 0.5);
                             int ypix = j + jj - int(n / 2.0 + 0.5);
 
+                            float value = image[xpix + nx * ypix];
+
                             // If inside image
-                            if (xpix >= 0 && xpix < nx && ypix >= 0 && ypix < ny)
+                            if (std::isfinite(value) && xpix >= 0 && xpix < nx && ypix >= 0 && ypix < ny)
                             {
-                                smooth_image[i + nx * j] = smooth_image[i + nx * j] + image[xpix + nx * ypix] * kernel[ii][jj];
+                                smooth_image[i + nx * j] = smooth_image[i + nx * j] + value * kernel[ii][jj];
                             }
                         }
                     }
@@ -323,14 +323,25 @@ namespace spacew
         return true;
     }
 
-    bool SpectralWeighting::local_weights(const string &infile, const string &outfile, int size, int bchan, int echan)
+    bool SpectralWeighting::local_weights(const string &infile, const string &outfile, int size, int bchan, int echan, float sigma)
     {
+
+        // Smooth input image if sigma>0
+        string smooth_infile = infile;
+        if (sigma > 0)
+        {
+            if (!gaussian_smoothing(infile, "smoothed_" + infile, sigma))
+            {
+                return false;
+            }
+            smooth_infile = "smoothed_" + infile;
+        }
 
         // Open input file and create output file
         int status = 0;
         spacew::fits infits;
 
-        if (!infits.open(infile))
+        if (!infits.open(smooth_infile))
         {
             return false;
         }
@@ -399,7 +410,7 @@ namespace spacew
         return true;
     }
 
-    bool SpectralWeighting::weighted_splat(const string &infile, const string &outfile, int size, int bchan, int echan)
+    bool SpectralWeighting::weighted_splat(const string &infile, const string &outfile, int size, int bchan, int echan, float sigma)
     {
         // Open input file and create output file
         int status = 0;
@@ -422,7 +433,7 @@ namespace spacew
 
         // Calculate weights cube and open it
         cout << "Calculating local weights" << endl;
-        local_weights(infile, "!weights_" + infile, size, bchan, echan); // Create a fits cube creating weights
+        local_weights(infile, "!weights_" + infile, size, bchan, echan, sigma); // Create a fits cube creating weights
 
         spacew::fits winfits;
 
@@ -514,7 +525,7 @@ namespace spacew
         return true;
     }
 
-    bool SpectralWeighting::weighted_merge(const string &filelist, const string &outfile, int size, int bchan, int echan)
+    bool SpectralWeighting::weighted_merge(const string &filelist, const string &outfile, int size, int bchan, int echan, float sigma)
     {
 
         // If size=0, no weight is applied
@@ -554,7 +565,7 @@ namespace spacew
         {
             for (int i = 0; i < files.size(); i++)
             {
-                if (!local_weights(files[i], "!weights_" + files[i], size, bchan, echan))
+                if (!local_weights(files[i], "!weights_" + files[i], size, bchan, echan, sigma))
                 {
                     return false;
                 }

@@ -29,6 +29,7 @@ namespace spacew
         bool clone_header(const fits &infits);
         bool fill(const float &value);
         int get_naxis() const;     // Returns the number of axis
+        bool set_naxis(const int &i); 
         long get_naxes(const int& i) const; // Returns the size of each axis
         bool set_naxes(const int& i,const long& value);
         bool read_channel_image(const int& channel, vector <float> &image); 
