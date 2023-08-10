@@ -699,4 +699,78 @@ namespace spacew
         return true;
     }
 
+
+    bool SpectralWeighting::sum_fits(const string &infile1,const string &infile2, const string &outfile) {
+
+        int status = 0;
+        spacew::fits infits1;
+        spacew::fits infits2;
+
+        if (!infits1.open(infile1))
+        {
+            return false;
+        }
+
+        if (!infits2.open(infile2))
+        {
+            return false;
+        }
+
+        spacew::fits outfits;
+        if (!outfits.create(outfile))
+        {
+            return false;
+        }
+
+        outfits.clone_header(infits1);
+        outfits.fill(0);
+
+        // Add main loop
+        int nx = infits1.get_naxes(0);
+        int ny = infits1.get_naxes(1);
+        int nz = infits1.get_naxes(2);
+
+        vector<float> image1(nx * ny);
+        vector<float> image2(nx * ny);
+        vector<float> add_image(nx * ny);
+
+        for (int k = 0; k < nz; k++)
+        {
+            cout << "Working on channel: " << k + 1 << " of " << nz << "\t\r" << std::flush;
+            infits1.read_channel_image(k, image1);
+            infits2.read_channel_image(k, image2);
+
+            
+            for (int i = 0; i < nx*ny; i++)
+            {
+               add_image[i]=image1[i]+image2[i];
+            }
+            outfits.write_channel_image(k, add_image);
+        }
+
+        cout << endl;
+
+        // Close files
+        if (!infits1.close()) // Check that worked
+        {
+            return false;
+        }
+
+        if (!infits2.close()) // Check that worked
+        {
+            return false;
+        }
+
+        if (!outfits.close()) // Check that worked
+        {
+            return false;
+        }
+
+        return true;
+
+
+
+
+
+    }
 }
