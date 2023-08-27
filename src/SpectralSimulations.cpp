@@ -3,6 +3,7 @@
 #include <cmath>
 #include <random>
 #include <sstream>
+#include <chrono>
 #include "SpectralSimulations.h"
 #include "fits.h"
 
@@ -86,7 +87,8 @@ namespace spacew
             add_noise_model(outfits, sigma_noise);
         }
 
-        if(rfi_infile!=""){
+        if (rfi_infile != "")
+        {
             add_RFI(outfits, rfi_infile);
         }
 
@@ -116,11 +118,13 @@ namespace spacew
         vector<int> xpos(nsources);
         vector<int> ypos(nsources);
         vector<float> image(nx * ny);
+        vector<float> sources_image(nx * ny);
 
         for (int n = 0; n < nsources; n++)
         {
             xpos[n] = uniform_random_nx(rng);
             ypos[n] = uniform_random_ny(rng);
+            sources_image[xpos[n] + nx * ypos[n]] += extract_random_flux();
         }
 
         for (int k = 0; k < nz; k++)
@@ -128,10 +132,9 @@ namespace spacew
             cout << "Working on channel: " << k + 1 << " of " << nz << "\t\r" << std::flush;
             model_fits.read_channel_image(k, image);
 
-            for (int n = 0; n < nsources; n++)
+            for (int idx = 0; idx <= nx * ny; idx++)
             {
-
-                image[xpos[n] + nx * ypos[n]] += extract_random_flux();
+                image[idx] += sources_image[idx];
             }
 
             model_fits.write_channel_image(k, image);
@@ -142,6 +145,10 @@ namespace spacew
 
     bool SpectralSimulations::add_noise_model(fits &model_fits, float sigma_noise)
     {
+        // Get a random seed from the clock
+        // Example from https://cplusplus.com/reference/random/mersenne_twister_engine/seed/
+        typedef std::chrono::high_resolution_clock myclock;
+        myclock::time_point beginning = myclock::now();
 
         int nx = model_fits.get_naxes(0);
         int ny = model_fits.get_naxes(1);
@@ -151,7 +158,14 @@ namespace spacew
         std::mt19937 rng(dev());
         std::normal_distribution<float> gauss_noise(0, sigma_noise);
 
-        rng.seed(1); // Always the same random simulation\
+        // Always the same random simulation
+        // rng.seed(1);
+
+        // Obtain a seed from the timer
+        myclock::duration d = myclock::now() - beginning;
+        unsigned s = d.count();
+        rng.seed(s);
+        cout << "Using random seed: " << s << endl;
 
         vector<float> image(nx * ny);
 
@@ -196,7 +210,6 @@ namespace spacew
     bool SpectralSimulations::add_RFI(fits &model_fits, const string &RFI_infile)
     {
 
-    
         // Open RFI infile
         ifstream in(RFI_infile);
         if (!in.good())
@@ -216,23 +229,24 @@ namespace spacew
                 int xp1, xp2, yp1, yp2, ch1, ch2;
                 float i;
                 stringstream ss(s);
-                ss>>xp1;
-                ss>>yp1;
-                ss>>xp2;
-                ss>>yp2;
-                ss>>i;
-                ss>>ch1;
-                ss>>ch2;
-                cout<<xp1<<" "<<xp2<<" "<<yp1<<" "<<yp2<<" "<<i<<" "<<ch1<<" "<<ch2<<endl;
+                ss >> xp1;
+                ss >> yp1;
+                ss >> xp2;
+                ss >> yp2;
+                ss >> i;
+                ss >> ch1;
+                ss >> ch2;
+                cout << xp1 << " " << xp2 << " " << yp1 << " " << yp2 << " " << i << " " << ch1 << " " << ch2 << endl;
                 vrfi.push_back(rfi(xp1, yp1, xp2, yp2, i, ch1, ch2));
             }
             if (in.eof())
-                break;  
+                break;
         }
 
-        cout<<"Found "<<vrfi.size()<<" rfi"<<endl;
+        cout << "Found " << vrfi.size() << " rfi" << endl;
 
-        if(vrfi.size()==0){
+        if (vrfi.size() == 0)
+        {
             return true;
         }
 
@@ -251,15 +265,15 @@ namespace spacew
             {
                 for (int i = 0; i < nx; i++)
                 {
-                int idx=i+nx*j;
-                for(int n=0; n<vrfi.size(); n++) {
-                    image[idx] += vrfi[n].get_intensity(i+1,j+1,k+1);
-                }
+                    int idx = i + nx * j;
+                    for (int n = 0; n < vrfi.size(); n++)
+                    {
+                        image[idx] += vrfi[n].get_intensity(i + 1, j + 1, k + 1);
+                    }
                 }
             }
             model_fits.write_channel_image(k, image);
         }
-
 
         return true;
     }

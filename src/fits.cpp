@@ -220,6 +220,7 @@ namespace spacew
         pix[1] = 1;
         pix[2] = channel + 1;
         long nvalues = naxes[0] * naxes[1];
+        image.resize(nvalues, float_nan);
         
         // Set to one if undefined values are found in the fit file and in this case these are replaced with float_nan
         int anynull=0; 

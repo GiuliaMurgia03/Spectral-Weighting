@@ -163,10 +163,10 @@ namespace spacew
         int nz = infits.get_naxes(2);
 
         vector<float> image(nx * ny);
-        vector<float> smooth_image(nx * ny);
 
         for (int k = 0; k < nz; k++)
         {
+            vector<float> smooth_image(nx * ny);
             cout << "Working on channel: " << k + 1 << " of " << nz << "\t\r" << std::flush;
             infits.read_channel_image(k, image);
 
@@ -330,11 +330,11 @@ namespace spacew
         string smooth_infile = infile;
         if (sigma > 0)
         {
-            if (!gaussian_smoothing(infile, "smoothed_" + infile, sigma))
+            if (!gaussian_smoothing(infile, "!smoothed_" + infile, sigma))
             {
                 return false;
             }
-            smooth_infile = "smoothed_" + infile;
+            smooth_infile = "!smoothed_" + infile;
         }
 
         // Open input file and create output file
@@ -699,8 +699,8 @@ namespace spacew
         return true;
     }
 
-
-    bool SpectralWeighting::sum_fits(const string &infile1,const string &infile2, const string &outfile) {
+    bool SpectralWeighting::sum_fits(const string &infile1, const string &infile2, const string &outfile)
+    {
 
         int status = 0;
         spacew::fits infits1;
@@ -740,10 +740,9 @@ namespace spacew
             infits1.read_channel_image(k, image1);
             infits2.read_channel_image(k, image2);
 
-            
-            for (int i = 0; i < nx*ny; i++)
+            for (int i = 0; i < nx * ny; i++)
             {
-               add_image[i]=image1[i]+image2[i];
+                add_image[i] = image1[i] + image2[i];
             }
             outfits.write_channel_image(k, add_image);
         }
@@ -767,10 +766,5 @@ namespace spacew
         }
 
         return true;
-
-
-
-
-
     }
 }
