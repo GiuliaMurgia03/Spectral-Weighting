@@ -163,10 +163,11 @@ namespace spacew
         int nz = infits.get_naxes(2);
 
         vector<float> image(nx * ny);
+        vector<float> smooth_image(nx * ny);
 
         for (int k = 0; k < nz; k++)
         {
-            vector<float> smooth_image(nx * ny);
+            std::fill(smooth_image.beg(), smooth_image.end(), 0.0);
             cout << "Working on channel: " << k + 1 << " of " << nz << "\t\r" << std::flush;
             infits.read_channel_image(k, image);
 

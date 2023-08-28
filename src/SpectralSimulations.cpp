@@ -14,10 +14,22 @@ namespace spacew
 
     SpectralSimulations::SpectralSimulations()
     {
+        noise_model = "white_noise";
     }
 
     SpectralSimulations::~SpectralSimulations()
     {
+    }
+
+    bool SpectralSimulations::set_noise_model(const string &model)
+    {
+        if (model != "white_noise" && model != "vertical_noise" && model != "horizontal_noise")
+        {
+            cout << "Model noise not implemented" << endl;
+            return false;
+        }
+        noise_model = model;
+        return true;
     }
 
     bool SpectralSimulations::init_flux_bins(const float &s_min, const float &s_max, const float &delta_s)
@@ -84,7 +96,16 @@ namespace spacew
         }
         if (sigma_noise > 0)
         {
-            add_noise_model(outfits, sigma_noise);
+            if(noise_model=="white_noise"){
+                add_noise_model(outfits, sigma_noise);
+            }
+            else if(noise_model=="vertical_noise"){
+                add_vertical_scan_noise_model(outfits, sigma_noise, 0.8);
+            }
+
+            else if(noise_model=="horizontal_noise"){
+                add_horizontal_scan_noise_model(outfits, sigma_noise, 0.8);
+            }
         }
 
         if (rfi_infile != "")
@@ -177,6 +198,102 @@ namespace spacew
             for (int i = 0; i < nx * ny; i++)
             {
                 image[i] += gauss_noise(rng);
+            }
+
+            model_fits.write_channel_image(k, image);
+        }
+
+        return true;
+    }
+
+    bool SpectralSimulations::add_vertical_scan_noise_model(fits &model_fits, float sigma_noise, float alpha)
+    {
+
+        // Get a random seed from the clock
+        // Example from https://cplusplus.com/reference/random/mersenne_twister_engine/seed/
+        typedef std::chrono::high_resolution_clock myclock;
+        myclock::time_point beginning = myclock::now();
+
+        int nx = model_fits.get_naxes(0);
+        int ny = model_fits.get_naxes(1);
+        int nz = model_fits.get_naxes(2);
+
+        std::random_device dev;
+        std::mt19937 rng(dev());
+        std::normal_distribution<float> gauss_noise(0, sigma_noise);
+
+        // Always the same random simulation
+        // rng.seed(1);
+
+        // Obtain a seed from the timer
+        myclock::duration d = myclock::now() - beginning;
+        unsigned s = d.count();
+        rng.seed(s);
+        cout << "Using random seed: " << s << endl;
+
+        vector<float> image(nx * ny);
+        float old_noise = 0;
+
+        for (int k = 0; k < nz; k++)
+        {
+            cout << "Working on channel: " << k + 1 << " of " << nz << "\t\r" << std::flush;
+            model_fits.read_channel_image(k, image);
+
+            for (int i = 0; i < nx; i++)
+            {
+                for (int j = 0; j < ny; j++)
+                {
+                    image[i + j * nx] += alpha * old_noise + gauss_noise(rng);
+                    old_noise = image[i + j * nx];
+                }
+            }
+
+            model_fits.write_channel_image(k, image);
+        }
+
+        return true;
+    }
+
+    bool SpectralSimulations::add_horizontal_scan_noise_model(fits &model_fits, float sigma_noise, float alpha)
+    {
+
+        // Get a random seed from the clock
+        // Example from https://cplusplus.com/reference/random/mersenne_twister_engine/seed/
+        typedef std::chrono::high_resolution_clock myclock;
+        myclock::time_point beginning = myclock::now();
+
+        int nx = model_fits.get_naxes(0);
+        int ny = model_fits.get_naxes(1);
+        int nz = model_fits.get_naxes(2);
+
+        std::random_device dev;
+        std::mt19937 rng(dev());
+        std::normal_distribution<float> gauss_noise(0, sigma_noise);
+
+        // Always the same random simulation
+        // rng.seed(1);
+
+        // Obtain a seed from the timer
+        myclock::duration d = myclock::now() - beginning;
+        unsigned s = d.count();
+        rng.seed(s);
+        cout << "Using random seed: " << s << endl;
+
+        vector<float> image(nx * ny);
+        float old_noise = 0;
+
+        for (int k = 0; k < nz; k++)
+        {
+            cout << "Working on channel: " << k + 1 << " of " << nz << "\t\r" << std::flush;
+            model_fits.read_channel_image(k, image);
+
+            for (int j = 0; j < ny; j++)
+            {
+                for (int i = 0; i < nx; i++)
+                {
+                    image[i + j * nx] += alpha * old_noise + gauss_noise(rng);
+                    old_noise = image[i + j * nx];
+                }
             }
 
             model_fits.write_channel_image(k, image);

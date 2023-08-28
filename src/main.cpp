@@ -11,10 +11,10 @@ int main(int argc, char *argv[])
 
     float sigma = 0.0;
     string option = "-help";
-    if(argc>=2) {
+    if (argc >= 2)
+    {
         option = argv[1];
     }
-   
 
     // Check smooth option
     if (option == "-smooth" && argc >= 3)
@@ -41,8 +41,9 @@ int main(int argc, char *argv[])
         cout << "SpectralWeighting [-smooth sigma] -local_weights input.fits output.fits size" << endl;
         cout << "SpectralWeighting -merge filelist.txt output.fits [bchan echan]" << endl;
         cout << "SpectralWeighting [-smooth sigma] -weighted_merge filelist.txt output.fits size [bchan echan]" << endl;
-        cout << "SpectralWeighting -simul outfile.fits nx ny nz nsources sigma_noise [rfi_infile]" << endl;
+        cout << "SpectralWeighting -simul noise_model outfile.fits nx ny nz nsources sigma_noise [rfi_infile]" << endl;
         cout << "SpectralWeighting -sum input1.fits input2.fits outfile.fits" << endl;
+        cout << "Valid noise models are: white_noise, vertical_noise, horizontal_noise" << endl;
 
         return EXIT_SUCCESS;
     }
@@ -131,16 +132,20 @@ int main(int argc, char *argv[])
     }
 
     // Simulation
-    if (argc >= 8 && option == "-simul")
+    if (argc >= 9 && option == "-simul")
     {
-        if (argc == 8 && !ssimul.create_outfits(argv[2], std::stoi(argv[3]), std::stoi(argv[4]), std::stoi(argv[5]), std::stoi(argv[6]), std::stof(argv[7])))
+        if (argc == 9)
         {
-            return EXIT_FAILURE;
+            if (!ssimul.set_noise_model(argv[2]) || !ssimul.create_outfits(argv[3], std::stoi(argv[4]), std::stoi(argv[5]), std::stoi(argv[6]), std::stoi(argv[7]), std::stof(argv[8])))
+
+                return EXIT_FAILURE;
         }
 
-        if (argc == 9 && !ssimul.create_outfits(argv[2], std::stoi(argv[3]), std::stoi(argv[4]), std::stoi(argv[5]), std::stoi(argv[6]), std::stof(argv[7]), argv[8]))
+        if (argc == 10)
         {
-            return EXIT_FAILURE;
+            if (!ssimul.set_noise_model(argv[2]) || !ssimul.create_outfits(argv[3], std::stoi(argv[4]), std::stoi(argv[5]), std::stoi(argv[6]), std::stoi(argv[7]), std::stof(argv[8]), argv[9]))
+
+                return EXIT_FAILURE;
         }
     }
 
