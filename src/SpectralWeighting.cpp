@@ -12,12 +12,18 @@ namespace spacew
     SpectralWeighting::SpectralWeighting()
     {
         float_nan = std::nanf("nan");
+        exponent = 2;
         cout << "Inizialization" << endl;
     }
 
     SpectralWeighting::~SpectralWeighting()
     {
         cout << "Clean up" << endl;
+    }
+
+    bool SpectralWeighting::set_exponent(float e) {
+        exponent=e;
+        return true;
     }
 
     bool SpectralWeighting::splat(const string &infile, const string &outfile, int bchan, int echan)
@@ -167,7 +173,7 @@ namespace spacew
 
         for (int k = 0; k < nz; k++)
         {
-            std::fill(smooth_image.beg(), smooth_image.end(), 0.0);
+            std::fill(smooth_image.begin(), smooth_image.end(), 0.0);
             cout << "Working on channel: " << k + 1 << " of " << nz << "\t\r" << std::flush;
             infits.read_channel_image(k, image);
 
@@ -390,7 +396,7 @@ namespace spacew
             get_plane_sigma_image(image, nx, ny, sigma_image, m);
             for (int i = 0; i < sigma_image.size(); i++)
             {
-                sigma_image[i] = 1 / pow(sigma_image[i], 2);
+                sigma_image[i] = 1 / pow(sigma_image[i], exponent);
             }
             outfits.write_channel_image(k, sigma_image);
         }

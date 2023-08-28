@@ -13,9 +13,11 @@ namespace spacew
     {
 
         float float_nan;
+        float exponent;
     public:
         SpectralWeighting();
         ~SpectralWeighting();
+        bool set_exponent(float e);
         bool splat(const string& infile, const string& outfile, int bchan=0, int echan=0);
         bool weighted_splat(const string &infile, const string &outfile, int size, int bchan=0, int echan=0, float sigma=0);
         bool gaussian_smoothing(const string &infile, const string &outfile, float sigma);

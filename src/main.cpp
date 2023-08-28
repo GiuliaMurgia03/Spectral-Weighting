@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
         cout << "SpectralWeighting -local_noise input.fits output.fits size" << endl;
         cout << "SpectralWeighting [-smooth sigma] -local_weights input.fits output.fits size" << endl;
         cout << "SpectralWeighting -merge filelist.txt output.fits [bchan echan]" << endl;
-        cout << "SpectralWeighting [-smooth sigma] -weighted_merge filelist.txt output.fits size [bchan echan]" << endl;
+        cout << "SpectralWeighting [-smooth sigma] -weighted_merge exponent filelist.txt output.fits size [bchan echan]" << endl;
         cout << "SpectralWeighting -simul noise_model outfile.fits nx ny nz nsources sigma_noise [rfi_infile]" << endl;
         cout << "SpectralWeighting -sum input1.fits input2.fits outfile.fits" << endl;
         cout << "Valid noise models are: white_noise, vertical_noise, horizontal_noise" << endl;
@@ -104,14 +104,15 @@ int main(int argc, char *argv[])
     }
 
     // Weighted Merge
-    if (argc >= 4 && option == "-weighted_merge")
+    if (argc >= 5 && option == "-weighted_merge")
     {
-        if (argc == 5 && !sp.weighted_merge(argv[2], argv[3], std::stoi(argv[4]), 0, 0, sigma))
+        if (argc == 6 && (!sp.set_exponent(std::stof(argv[2])) || !sp.weighted_merge(argv[3], argv[4], std::stoi(argv[5]), 0, 0, sigma)))
         {
             return EXIT_FAILURE;
         }
 
-        if (argc == 7 && !sp.weighted_merge(argv[2], argv[3], std::stoi(argv[4]), std::stoi(argv[5]), std::stoi(argv[6]), sigma))
+        if (argc == 8 && (!sp.set_exponent(std::stof(argv[2])) || !sp.weighted_merge(argv[3], argv[4], std::stoi(argv[5]), std::stoi(argv[6]), std::stoi(argv[7]), sigma)))
+
         {
             return EXIT_FAILURE;
         }
