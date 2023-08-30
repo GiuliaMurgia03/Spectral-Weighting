@@ -21,8 +21,9 @@ namespace spacew
         cout << "Clean up" << endl;
     }
 
-    bool SpectralWeighting::set_exponent(float e) {
-        exponent=e;
+    bool SpectralWeighting::set_exponent(float e)
+    {
+        exponent = e;
         return true;
     }
 
@@ -389,11 +390,55 @@ namespace spacew
         }
         cout << "Weights' cube from channel " << bchan + 1 << " to channel " << echan + 1 << endl;
 
+        vector<float> mini_splat_image(nx * ny, float_nan);
+        vector<float> sum_image(nx * ny, 0.0);
+        vector<float> wsum_image(nx * ny, 0.0);
+
         for (int k = bchan; k < echan; k++)
         {
             cout << "Working on channel: " << k + 1 << " of " << echan + 1 << "\t\r" << std::flush;
-            infits.read_channel_image(k, image);
-            get_plane_sigma_image(image, nx, ny, sigma_image, m);
+            std::fill(mini_splat_image.begin(), mini_splat_image.end(), float_nan);
+            std::fill(sum_image.begin(), sum_image.end(), 0.0);
+            std::fill(wsum_image.begin(), wsum_image.end(), 0.0);
+
+            // We compute a mini splat of the nearby channels to highlight the presence of faint broad band RFI
+            int k1 = k - m;
+            int k2 = k + m;
+            if (k1 < bchan)
+            {
+                k1 = bchan;
+                k2 = bchan + 2 * m + 1;
+            }
+
+            if (k2 > echan)
+            {
+                k2 = echan;
+                k1 = echan - 2 * m - 1;
+            }
+
+            for (int kk = k1; kk < k2; k++)
+            {
+                infits.read_channel_image(kk, image);
+
+                for (int idx = 0; idx < nx * ny; idx++)
+                {
+                    if (std::isfinite(image[idx]))
+                    {
+                        sum_image[idx] += image[idx];
+                        wsum_image[idx] += 1.0;
+                    }
+                }
+
+                for (int idx = 0; idx < nx * ny; idx++)
+                {
+                    if (std::isfinite(sum_image[idx]) && std::isfinite(wsum_image[idx]) && wsum_image[idx] > 0)
+                    {
+                        mini_splat_image[idx] = sum_image[idx] / wsum_image[idx];
+                    }
+                }
+            }
+            // infits.read_channel_image(k, image);
+            get_plane_sigma_image(mini_splat_image, nx, ny, sigma_image, m);
             for (int i = 0; i < sigma_image.size(); i++)
             {
                 sigma_image[i] = 1 / pow(sigma_image[i], exponent);
@@ -706,8 +751,7 @@ namespace spacew
         return true;
     }
 
-
-        bool SpectralWeighting::sum_fits(const string &infile1, const string &infile2, const string &outfile)
+    bool SpectralWeighting::sum_fits(const string &infile1, const string &infile2, const string &outfile)
     {
 
         int status = 0;
