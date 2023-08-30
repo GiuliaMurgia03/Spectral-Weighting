@@ -435,6 +435,11 @@ namespace spacew
             return false;
         }
 
+        if (!infits.close()) // Check that worked
+        {
+            return false;
+        }
+
         return true;
     }
 
