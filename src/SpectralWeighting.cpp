@@ -404,6 +404,7 @@ namespace spacew
             // We compute a mini splat of the nearby channels to highlight the presence of faint broad band RFI
             int k1 = k - m;
             int k2 = k + m;
+
             if (k1 < bchan)
             {
                 k1 = bchan;
@@ -416,7 +417,7 @@ namespace spacew
                 k1 = echan - 2 * m - 1;
             }
 
-            for (int kk = k1; kk < k2; k++)
+            for (int kk = k1; kk < k2; kk++)
             {
                 infits.read_channel_image(kk, image);
 
