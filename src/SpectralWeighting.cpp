@@ -752,7 +752,7 @@ namespace spacew
         return true;
     }
 
-    bool SpectralWeighting::sum_fits(const string &infile1, const string &infile2, const string &outfile)
+    bool SpectralWeighting::sum_fits(const string &infile1, const string &infile2, const string &outfile, float f1, float f2)
     {
 
         int status = 0;
@@ -795,7 +795,7 @@ namespace spacew
 
             for (int i = 0; i < nx * ny; i++)
             {
-                add_image[i] = image1[i] + image2[i];
+                add_image[i] = f1*image1[i] + f2*image2[i];
             }
             outfits.write_channel_image(k, add_image);
         }

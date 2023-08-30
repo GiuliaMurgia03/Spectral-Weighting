@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
         cout << "SpectralWeighting -merge filelist.txt output.fits [bchan echan]" << endl;
         cout << "SpectralWeighting [-smooth sigma] -weighted_merge exponent filelist.txt output.fits size [bchan echan]" << endl;
         cout << "SpectralWeighting -simul noise_model outfile.fits nx ny nz nsources sigma_noise [rfi_infile]" << endl;
-        cout << "SpectralWeighting -sum input1.fits input2.fits outfile.fits" << endl;
+        cout << "SpectralWeighting -sum input1.fits input2.fits outfile.fits [f1 f2]" << endl;
         cout << "SpectralWeighting -add_line input.fits xp yp channel peak width" << endl;
         cout << "Valid noise models are: white_noise, vertical_noise, horizontal_noise" << endl;
 
@@ -72,8 +72,13 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    // Sum
+    // Sum or subtract 
     if (argc == 5 && option == "-sum" && !sp.sum_fits(argv[2], argv[3], argv[4]))
+    {
+        return EXIT_FAILURE;
+    }
+
+    if (argc == 7 && option == "-sum" && !sp.sum_fits(argv[2], argv[3], argv[4], std::stof(argv[5]), std::stof(argv[6])))
     {
         return EXIT_FAILURE;
     }

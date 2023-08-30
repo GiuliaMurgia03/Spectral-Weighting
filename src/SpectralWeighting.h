@@ -25,7 +25,7 @@ namespace spacew
         bool get_plane_sigma_image(vector <float> &image, int nx, int ny, vector <float> &sigma_image, int size);
         bool local_weights(const string &infile, const string &outfile, int size, int bchan=0, int echan=0, float sigma=0);
         bool weighted_merge(const string &filelist, const string &outfile, int size, int bchan=0, int echan=0, float sigma=0);
-        bool sum_fits(const string &infile1,const string &infile2, const string &outfile);
+        bool sum_fits(const string &infile1,const string &infile2, const string &outfile, float f1=1, float f2=1);
         
     };
 
