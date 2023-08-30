@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
     }
 
     // Add spectral line
-    if (argc == 7 && option == "-add_line" && !ssimul.add_spectral_line(argv[1], std::stoi(argv[2]), std::stoi(argv[3]), std::stoi(argv[4]), std::stof(argv[5]), std::stof(argv[6])))
+    if (argc == 8 && option == "-add_line" && !ssimul.add_spectral_line(argv[2], std::stoi(argv[3]), std::stoi(argv[4]), std::stoi(argv[5]), std::stof(argv[6]), std::stof(argv[7])))
     {
         return EXIT_FAILURE;
     }
