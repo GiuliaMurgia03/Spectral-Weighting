@@ -706,7 +706,8 @@ namespace spacew
         return true;
     }
 
-    bool SpectralWeighting::sum_fits(const string &infile1, const string &infile2, const string &outfile)
+
+        bool SpectralWeighting::sum_fits(const string &infile1, const string &infile2, const string &outfile)
     {
 
         int status = 0;

@@ -12,7 +12,7 @@ namespace spacew
         naxes = nullptr;
         fptr = nullptr;
         status = 0;
-        float_nan=std::nanf("nan");
+        float_nan = std::nanf("nan");
     }
 
     fits::~fits()
@@ -35,9 +35,10 @@ namespace spacew
         return naxes[i];
     }
 
-    bool fits::set_naxis(const int &i) {
-        
-        naxis=i;
+    bool fits::set_naxis(const int &i)
+    {
+
+        naxis = i;
         return true;
     }
 
@@ -64,7 +65,7 @@ namespace spacew
     bool fits::open(const string &infile)
     {
         status = 0;
-        fits_open_file(&fptr, infile.c_str(), READONLY, &status);
+        fits_open_file(&fptr, infile.c_str(), READWRITE, &status);
 
         if (status) // Check that worked
         {
@@ -188,7 +189,7 @@ namespace spacew
         {
             for (int c = 0; c < naxes[2]; c++)
             {
-                pix[2] = c+1;
+                pix[2] = c + 1;
                 fits_write_pix(fptr, TFLOAT, pix, nvalues, pixvalues, &status);
             }
         }
@@ -221,9 +222,9 @@ namespace spacew
         pix[2] = channel + 1;
         long nvalues = naxes[0] * naxes[1];
         image.resize(nvalues, float_nan);
-        
+
         // Set to one if undefined values are found in the fit file and in this case these are replaced with float_nan
-        int anynull=0; 
+        int anynull = 0;
 
         fits_read_pix(fptr, TFLOAT, pix, nvalues, &float_nan, &image[0], &anynull, &status);
 

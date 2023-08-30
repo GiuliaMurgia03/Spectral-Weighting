@@ -96,14 +96,17 @@ namespace spacew
         }
         if (sigma_noise > 0)
         {
-            if(noise_model=="white_noise"){
+            if (noise_model == "white_noise")
+            {
                 add_noise_model(outfits, sigma_noise);
             }
-            else if(noise_model=="vertical_noise"){
+            else if (noise_model == "vertical_noise")
+            {
                 add_vertical_scan_noise_model(outfits, sigma_noise, 0.8);
             }
 
-            else if(noise_model=="horizontal_noise"){
+            else if (noise_model == "horizontal_noise")
+            {
                 add_horizontal_scan_noise_model(outfits, sigma_noise, 0.8);
             }
         }
@@ -157,6 +160,27 @@ namespace spacew
             {
                 image[idx] += sources_image[idx];
             }
+
+            model_fits.write_channel_image(k, image);
+        }
+
+        return true;
+    }
+
+    bool SpectralSimulations::add_spectral_line_model(fits &model_fits, int xp, int yp, int channel, float peak_intensity, float width)
+    {
+        int nx = model_fits.get_naxes(0);
+        int ny = model_fits.get_naxes(1);
+        int nz = model_fits.get_naxes(2);
+
+        vector<float> image(nx * ny);
+
+        for (int k = 0; k < nz; k++)
+        {
+            cout << "Working on channel: " << k + 1 << " of " << nz << "\t\r" << std::flush;
+            model_fits.read_channel_image(k, image);
+
+            image[xp + yp * nx] += peak_intensity * exp(-0.5 * pow((channel - k) / width, 2.0));
 
             model_fits.write_channel_image(k, image);
         }
@@ -390,6 +414,25 @@ namespace spacew
                 }
             }
             model_fits.write_channel_image(k, image);
+        }
+
+        return true;
+    }
+
+    bool SpectralSimulations::add_spectral_line(const string &infile, int xp, int yp, int channel, float peak_intensity, float width)
+    {
+
+        int status = 0;
+        spacew::fits infits;
+
+        if (!infits.open(infile))
+        {
+            return false;
+        }
+
+        if (!add_spectral_line_model(infits, xp, yp, channel, peak_intensity, width))
+        {
+            return false;
         }
 
         return true;

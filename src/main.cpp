@@ -43,6 +43,7 @@ int main(int argc, char *argv[])
         cout << "SpectralWeighting [-smooth sigma] -weighted_merge exponent filelist.txt output.fits size [bchan echan]" << endl;
         cout << "SpectralWeighting -simul noise_model outfile.fits nx ny nz nsources sigma_noise [rfi_infile]" << endl;
         cout << "SpectralWeighting -sum input1.fits input2.fits outfile.fits" << endl;
+        cout << "SpectralWeighting -add_line input.fits xp yp channel peak width" << endl;
         cout << "Valid noise models are: white_noise, vertical_noise, horizontal_noise" << endl;
 
         return EXIT_SUCCESS;
@@ -148,6 +149,12 @@ int main(int argc, char *argv[])
 
                 return EXIT_FAILURE;
         }
+    }
+
+    // Add spectral line
+    if (argc == 7 && option == "-add_line" && !ssimul.add_spectral_line(argv[1], std::stoi(argv[2]), std::stoi(argv[3]), std::stoi(argv[4]), std::stof(argv[5]), std::stof(argv[6])))
+    {
+        return EXIT_FAILURE;
     }
 
     return EXIT_SUCCESS;
