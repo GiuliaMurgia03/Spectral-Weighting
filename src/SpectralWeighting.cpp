@@ -342,7 +342,7 @@ namespace spacew
             {
                 return false;
             }
-            smooth_infile = "!smoothed_" + infile;
+            smooth_infile = "smoothed_" + infile;
         }
 
         // Open input file and create output file
