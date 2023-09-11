@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Murgia"
+  given-names: "Giulia"
+  orcid: "https://orcid.org/0009-0002-0149-9328"
+title: "Spectral-Weighting"
+version: 1.0
+doi: 
+date-released: 2023-09-11
+url: "https://github.com/GiuliaMurgia03/Spectral-Weighting.git"
