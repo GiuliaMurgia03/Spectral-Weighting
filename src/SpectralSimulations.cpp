@@ -92,7 +92,7 @@ namespace spacew
 
         if (nsources > 0)
         {
-            add_pointsources_model(outfits, nsources);
+            add_pointsources_model(outfits, nsources, 0); // Spectral index=0
         }
         if (sigma_noise > 0)
         {
@@ -124,7 +124,7 @@ namespace spacew
         return true;
     }
 
-    bool SpectralSimulations::add_pointsources_model(fits &model_fits, int nsources)
+    bool SpectralSimulations::add_pointsources_model(fits &model_fits, int nsources, double spectral_index)
     {
         init_flux_bins(1e-4, 1, 1e-4);
 
@@ -151,14 +151,20 @@ namespace spacew
             sources_image[xpos[n] + nx * ypos[n]] += extract_random_flux();
         }
 
+        double bandwidth = 0.1;
+        double frequency = 1;
+        double ch_width = bandwidth / nz;
+
         for (int k = 0; k < nz; k++)
         {
+
+            double ch_frequency = frequency + ch_width * k;
             cout << "Working on channel: " << k + 1 << " of " << nz << "\t\r" << std::flush;
             model_fits.read_channel_image(k, image);
 
             for (int idx = 0; idx <= nx * ny; idx++)
             {
-                image[idx] += sources_image[idx];
+                image[idx] += sources_image[idx] * pow(ch_frequency, -spectral_index);
             }
 
             model_fits.write_channel_image(k, image);
