@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include "SpectralWeighting.h"
 #include "SpectralSimulations.h"
 
@@ -44,6 +45,8 @@ int main(int argc, char *argv[])
         cout << "SpectralWeighting -simul noise_model outfile.fits nx ny nz nsources sigma_noise [rfi_infile]" << endl;
         cout << "SpectralWeighting -sum input1.fits input2.fits outfile.fits [f1 f2]" << endl;
         cout << "SpectralWeighting -add_line input.fits xp yp channel peak width" << endl;
+        cout << "SpectralWeighting -get_spectrum input.fits output.txt [bchan echan]" << endl;
+        cout << "SpectralWeighting -flag input.fits output.fits threshold [bchan echan]" << endl;
         cout << "Valid noise models are: white_noise, vertical_noise, horizontal_noise" << endl;
 
         return EXIT_SUCCESS;
@@ -72,7 +75,7 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    // Sum or subtract 
+    // Sum or subtract
     if (argc == 5 && option == "-sum" && !sp.sum_fits(argv[2], argv[3], argv[4]))
     {
         return EXIT_FAILURE;
@@ -160,6 +163,73 @@ int main(int argc, char *argv[])
     if (argc == 8 && option == "-add_line" && !ssimul.add_spectral_line(argv[2], std::stoi(argv[3]), std::stoi(argv[4]), std::stoi(argv[5]), std::stof(argv[6]), std::stof(argv[7])))
     {
         return EXIT_FAILURE;
+    }
+
+    // Flag
+    if (argc >= 5 && option == "-flag")
+    {
+            if (argc == 5)
+            {
+                if (!sp.flag_channels(argv[2], argv[3], std::stof(argv[4])))
+
+                    return EXIT_FAILURE;
+            }
+
+            if (argc == 7)
+            {
+                if (!sp.flag_channels(argv[2], argv[3], std::stof(argv[4]), std::stoi(argv[5]), std::stoi(argv[6])))
+
+                    return EXIT_FAILURE;
+            }
+    }
+
+    // Get spectrum
+    if (argc >= 4 && option == "-get_spectrum")
+    {
+        vector<ChannelStatistic> vstat;
+
+        if (argc == 4)
+        {
+            if (!sp.get_spectrum(argv[2], vstat))
+            {
+                return EXIT_FAILURE;
+            }
+
+            ofstream out(argv[3]);
+            if (!out.good())
+            {
+                cout << "Error! Cannot open file " << argv[3] << endl;
+
+                return EXIT_FAILURE;
+            }
+            for (int i = 0; i < vstat.size(); i++)
+            {
+                out << vstat[i].channel << " " << vstat[i].average << " " << vstat[i].sigma << " " << vstat[i].npix << endl;
+            }
+            out.close();
+            return EXIT_SUCCESS;
+        }
+
+        if (argc == 6)
+        {
+            if (!sp.get_spectrum(argv[2], vstat, std::stoi(argv[4]), std::stoi(argv[5])))
+            {
+                return EXIT_FAILURE;
+            }
+            ofstream out(argv[3]);
+            if (!out.good())
+            {
+                cout << "Error! Cannot open file " << argv[3] << endl;
+
+                return EXIT_FAILURE;
+            }
+            for (int i = 0; i < vstat.size(); i++)
+            {
+                out << vstat[i].channel << " " << vstat[i].average << " " << vstat[i].sigma << " " << vstat[i].npix << endl;
+            }
+            out.close();
+            return EXIT_SUCCESS;
+        }
     }
 
     return EXIT_SUCCESS;

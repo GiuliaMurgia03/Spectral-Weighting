@@ -795,7 +795,7 @@ namespace spacew
 
             for (int i = 0; i < nx * ny; i++)
             {
-                add_image[i] = f1*image1[i] + f2*image2[i];
+                add_image[i] = f1 * image1[i] + f2 * image2[i];
             }
             outfits.write_channel_image(k, add_image);
         }
@@ -814,6 +814,179 @@ namespace spacew
         }
 
         if (!outfits.close()) // Check that worked
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool SpectralWeighting::flag_channels(const string &infile, const string &outfile, float sigma_threshold, int bchan, int echan)
+    {
+        // Open input file and create output file
+        int status = 0;
+        spacew::fits infits;
+
+        if (!infits.open(infile))
+        {
+            return false;
+        }
+
+        spacew::fits outfits;
+        if (!outfits.create(outfile))
+        {
+            return false;
+        }
+
+        outfits.clone_header(infits);
+        outfits.fill(float_nan);
+
+        vector <ChannelStatistic> vstat;
+        get_spectrum(infile,vstat,bchan,echan);
+
+        int nx = infits.get_naxes(0);
+        int ny = infits.get_naxes(1);
+        int nz = infits.get_naxes(2);
+        vector<float> image(nx * ny);
+
+        if (echan == 0)
+        {
+            echan = infits.get_naxes(2);
+        }
+        else if (echan > 0)
+        {
+            echan = echan - 1;
+        }
+        if (bchan > 0)
+        {
+            bchan = bchan - 1;
+        }
+
+        for (int k = bchan; k < echan; k++)
+        {
+            // Loop over channels
+            cout << "Working on channel: " << k + 1 << " of " << echan + 1 << "\t\r" << std::flush;
+            bool save=false;
+            
+            for(int i=0;i<vstat.size();i++){
+                if(vstat[i].channel==k && vstat[i].sigma<sigma_threshold){
+                    save=true;
+                }
+            }
+            
+            if(save){
+                infits.read_channel_image(k, image);
+                long pix[4];
+                pix[0] = 1;
+                pix[1] = 1;
+                pix[2] = k+1;
+                pix[3] = 1;
+                long npixels = nx * ny;
+                fits_write_pix(outfits.get_fptr(), TFLOAT, pix, npixels, &image[0], &status);
+            }
+        }
+
+        // Close files
+        if (!infits.close()) // Check that worked
+        {
+            return false;
+        }
+
+        if (!outfits.close()) // Check that worked
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+
+
+    bool SpectralWeighting::get_spectrum(const string &infile, vector<ChannelStatistic> &vstat, int bchan, int echan)
+    {
+
+        // Open input file and create output file
+        int status = 0;
+        spacew::fits infits;
+
+        if (!infits.open(infile))
+        {
+            return false;
+        }
+
+        int nx = infits.get_naxes(0);
+        int ny = infits.get_naxes(1);
+        int nz = infits.get_naxes(2);
+
+        if (echan == 0)
+        {
+            echan = infits.get_naxes(2);
+        }
+        else if (echan > 0)
+        {
+            echan = echan - 1;
+        }
+        if (bchan > 0)
+        {
+            bchan = bchan - 1;
+        }
+
+        for (int k = bchan; k < echan; k++)
+        {
+            // Loop over channels
+            cout << "Working on channel: " << k + 1 << " of " << echan + 1 << "\t\r" << std::flush;
+
+            float average = 0;
+            float sigma = 0;
+            int npixel = 0;
+            vector<float> image;
+
+            infits.read_channel_image(k, image);
+
+            for (int idx = 0; idx < nx * ny; idx++)
+            {
+                float value = image[idx];
+
+                if (std::isfinite(value))
+                {
+                    average = average + value;
+                    npixel++;
+                }
+            }
+
+            if (npixel > 0)
+            {
+
+                average = average / npixel;
+
+                for (int idx = 0; idx < nx * ny; idx++)
+                {
+                    float value = image[idx];
+
+                    if (std::isfinite(value))
+                    {
+                        sigma = sigma + pow((value - average), 2);
+                    }
+                }
+                sigma = sqrt(sigma / npixel);
+            }
+            else
+            {
+                average = float_nan;
+            }
+
+            ChannelStatistic stat;
+            stat.channel = k;
+            stat.average = average;
+            stat.sigma = sigma;
+            stat.npix = npixel;
+
+            vstat.push_back(stat);
+        }
+        cout << endl;
+
+        // Close files
+        if (!infits.close()) // Check that worked
         {
             return false;
         }

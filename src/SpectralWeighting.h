@@ -9,9 +9,24 @@ using namespace std;
 namespace spacew
 {
 
+    class ChannelStatistic{
+    
+    public:
+        ChannelStatistic(){
+            channel=0;
+            average=0;
+            sigma=0;
+            npix=0;
+        }
+
+        int channel;
+        float average;
+        float sigma;
+        int npix;
+    };
+
     class SpectralWeighting
     {
-
         float float_nan;
         float exponent;
     public:
@@ -26,6 +41,8 @@ namespace spacew
         bool local_weights(const string &infile, const string &outfile, int size, int bchan=0, int echan=0, float sigma=0);
         bool weighted_merge(const string &filelist, const string &outfile, int size, int bchan=0, int echan=0, float sigma=0);
         bool sum_fits(const string &infile1,const string &infile2, const string &outfile, float f1=1, float f2=1);
+        bool flag_channels(const string &infile, const string &outfile, float sigma_threshold=3.0, int bchan=0, int echan=0);
+        bool get_spectrum(const string &infile, vector <ChannelStatistic> &vstat,int bchan=0, int echan=0);
         
     };
 
