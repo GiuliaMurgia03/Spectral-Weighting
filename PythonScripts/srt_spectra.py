@@ -39,11 +39,17 @@ for image_name in files_sim:
     # Plot
     font = {'family':'sans','color':'black','size':8}
     fig, ax = plt.subplots()
-    plt.plot(channels, spectrum, color='darkmagenta', linewidth=0.6)    
+    if (image_name=="29JUN16_M31_RA1_RR"):
+        plt.plot(channels, spectrum, color='darkmagenta', label='RA',linewidth=0.6)    
+    if (image_name=="29JUN16_M31_DEC3_RR"):
+        plt.plot(channels, spectrum, color='darkmagenta', label='DEC',linewidth=0.6)  
+    if (image_name=="weighted_merge"):
+        plt.plot(channels, spectrum, color='darkmagenta', label='Weighted Merge',linewidth=0.6)         
     plt.tick_params(labelsize=8)
     ax.set_xlim(2000,2800)
     ax.set_ylim(-0.1,1.1)
     ax.set_box_aspect(1/2.5)
+    leg = plt.legend(fontsize='8')
 
     plt.xlabel("Channels", fontdict = font)
     plt.ylabel("JY/BEAM", fontdict = font)
