@@ -161,6 +161,7 @@ namespace spacew
             return false;
         }
 
+        cout << "Cloning header" << endl;
         outfits.clone_header(infits);
         outfits.fill(0);
 
@@ -417,6 +418,16 @@ namespace spacew
                 k1 = echan - 2 * m - 1;
             }
 
+            if (k2 > echan)
+            {
+                k2 = echan;
+            }
+
+            if (k1 < bchan)
+            {
+                k1 = bchan;
+            }
+
             for (int kk = k1; kk < k2; kk++)
             {
                 infits.read_channel_image(kk, image);
@@ -438,7 +449,7 @@ namespace spacew
                     }
                 }
             }
-            // infits.read_channel_image(k, image);
+
             get_plane_sigma_image(mini_splat_image, nx, ny, sigma_image, m);
             for (int i = 0; i < sigma_image.size(); i++)
             {
@@ -841,8 +852,8 @@ namespace spacew
         outfits.clone_header(infits);
         outfits.fill(float_nan);
 
-        vector <ChannelStatistic> vstat;
-        get_spectrum(infile,vstat,bchan,echan);
+        vector<ChannelStatistic> vstat;
+        get_spectrum(infile, vstat, bchan, echan);
 
         int nx = infits.get_naxes(0);
         int ny = infits.get_naxes(1);
@@ -866,20 +877,23 @@ namespace spacew
         {
             // Loop over channels
             cout << "Working on channel: " << k + 1 << " of " << echan + 1 << "\t\r" << std::flush;
-            bool save=false;
-            
-            for(int i=0;i<vstat.size();i++){
-                if(vstat[i].channel==k && vstat[i].sigma<sigma_threshold){
-                    save=true;
+            bool save = false;
+
+            for (int i = 0; i < vstat.size(); i++)
+            {
+                if (vstat[i].channel == k && vstat[i].sigma < sigma_threshold)
+                {
+                    save = true;
                 }
             }
-            
-            if(save){
+
+            if (save)
+            {
                 infits.read_channel_image(k, image);
                 long pix[4];
                 pix[0] = 1;
                 pix[1] = 1;
-                pix[2] = k+1;
+                pix[2] = k + 1;
                 pix[3] = 1;
                 long npixels = nx * ny;
                 fits_write_pix(outfits.get_fptr(), TFLOAT, pix, npixels, &image[0], &status);
@@ -899,8 +913,6 @@ namespace spacew
 
         return true;
     }
-
-
 
     bool SpectralWeighting::get_spectrum(const string &infile, vector<ChannelStatistic> &vstat, int bchan, int echan)
     {

@@ -178,7 +178,7 @@ namespace spacew
 
         long nvalues = naxes[0] * naxes[1];
 
-        float pixvalues[nvalues];
+        float *pixvalues = new float[nvalues]; // NOT WORKING
 
         for (int i = 0; i < nvalues; i++)
         {
@@ -197,6 +197,8 @@ namespace spacew
         {
             fits_write_pix(fptr, TFLOAT, pix, nvalues, pixvalues, &status);
         }
+
+        delete[] pixvalues;
 
         if (status) // Check that worked
         {
