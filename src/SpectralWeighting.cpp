@@ -403,30 +403,8 @@ namespace spacew
             std::fill(wsum_image.begin(), wsum_image.end(), 0.0);
 
             // We compute a mini splat of the nearby channels to highlight the presence of faint broad band RFI
-            int k1 = k - m;
-            int k2 = k + m;
-
-            if (k1 < bchan)
-            {
-                k1 = bchan;
-                k2 = bchan + 2 * m + 1;
-            }
-
-            if (k2 > echan)
-            {
-                k2 = echan;
-                k1 = echan - 2 * m - 1;
-            }
-
-            if (k2 > echan)
-            {
-                k2 = echan;
-            }
-
-            if (k1 < bchan)
-            {
-                k1 = bchan;
-            }
+            int k1 = std::max(bchan, k - m);
+            int k2 = std::min(echan, k + m);
 
             for (int kk = k1; kk < k2; kk++)
             {
